@@ -1,0 +1,123 @@
+{
+  "page": {
+    "modes": {
+      "rule": "Правила",
+      "global": "Глобальный",
+      "direct": "Прямой"
+    },
+    "actions": {
+      "toggleChain": "Цепочка прокси",
+      "connect": "Подключиться",
+      "disconnect": "Отключиться",
+      "connecting": "Подключение...",
+      "clearChainConfig": "Очистить цепочку",
+      "speedTest": "Тест скорости",
+      "speedTestStop": "Стоп",
+      "toggleTree": "Group Tree"
+    },
+    "provider": {
+      "title": "Провайдеры прокси",
+      "actions": {
+        "updateAll": "Обновить все",
+        "update": "Обновить"
+      }
+    },
+    "rules": {
+      "title": "Правила прокси",
+      "select": "Выбрать правила"
+    },
+    "labels": {
+      "proxyCount": "Количество прокси",
+      "delayCheckReset": "Сброс проверки задержки"
+    },
+    "tooltips": {
+      "locate": "Местоположение",
+      "delayCheck": "Проверка задержки",
+      "sortDefault": "Сортировать по умолчанию",
+      "sortDelay": "Сортировать по задержке",
+      "sortName": "Сортировать по названию",
+      "delayCheckUrl": "URL для проверки задержки",
+      "showBasic": "Показывать меньше информации о прокси",
+      "showDetail": "Показывать больше информации о прокси",
+      "filter": "Фильтр",
+      "speedTest": "Реальный тест загрузки через отдельный экземпляр sing-box; текущий прокси не меняется, около 5 с на узел"
+    },
+    "placeholders": {
+      "delayCheckUrl": "URL для проверки задержки"
+    },
+    "chain": {
+      "header": "Цепочка прокси",
+      "warning": "Цепочка прокси может значительно снизить скорость сети. Если у вас нет явной рабочей необходимости или вы не понимаете эту настройку, оставьте ее отключенной.",
+      "empty": "Цепочка прокси может значительно снизить скорость сети. Если у вас нет явной рабочей необходимости или вы не понимаете эту настройку, оставьте ее отключенной.",
+      "instruction": "Нажимайте на узлы по порядку, чтобы добавить их в цепочку",
+      "minimumNodes": "Для цепочки требуется минимум 2 узла",
+      "minimumNodesHint": "Для цепочки требуется минимум 2 узла. Добавьте ещё один узел.",
+      "connectFailed": "Не удалось подключиться к цепочке прокси",
+      "disconnectFailed": "Не удалось отключиться от цепочки прокси",
+      "duplicateNode": "Этот узел уже добавлен в цепочку",
+      "entryNode": "Вход",
+      "exitNode": "Выход"
+    },
+    "messages": {
+      "directMode": "Прямой режим"
+    },
+    "title": {
+      "default": "Группы прокси",
+      "chainMode": "Режим цепочки прокси",
+      "tree": "Proxy Group Tree"
+    },
+    "tree": {
+      "root": "Root (MATCH)",
+      "groups": "Groups",
+      "ruleTargets": "Rule Targets",
+      "source": "Source",
+      "sourceProfile": "Profile",
+      "sourceRuntime": "Runtime",
+      "refresh": "Refresh",
+      "hint": "Left: group topology (drag / zoom). Right: proxy cards. Click a group circle to expand; expanding another group collapses the previous one.",
+      "empty": "No proxy-groups found in the current config.",
+      "loadFailed": "Failed to read the config file.",
+      "current": "Current Selection",
+      "resetView": "Reset View",
+      "collapseAll": "Collapse All",
+      "groupTopology": "GROUP TOPOLOGY",
+      "proxyNodes": "PROXY NODES",
+      "emptyHint": "No proxy nodes under the current group. Click another group circle on the left to switch.",
+      "checkConfig": "Config Check",
+      "strategy": "Strategy",
+      "protocol": "Protocol",
+      "server": "Server",
+      "members": "Members",
+      "groupKind": "Proxy Group",
+      "proxyKind": "Proxy Node"
+    }
+  },
+  "feedback": {
+    "notifications": {
+      "provider": {
+        "updateSuccess": "{{name}} успешно обновлён",
+        "updateFailed": "Не удалось обновить {{name}}: {{message}}",
+        "genericError": "Ошибка обновления: {{message}}",
+        "none": "Нет доступных провайдеров для обновления",
+        "allUpdated": "Все провайдеры успешно обновлены"
+      }
+    }
+  },
+  "components": {
+    "enums": {
+      "strategies": {
+        "select": "select",
+        "url-test": "url-test",
+        "fallback": "fallback",
+        "load-balance": "load-balance",
+        "relay": "relay"
+      },
+      "policies": {
+        "DIRECT": "DIRECT",
+        "REJECT": "REJECT",
+        "REJECT-DROP": "REJECT-DROP",
+        "PASS": "PASS"
+      }
+    }
+  }
+}

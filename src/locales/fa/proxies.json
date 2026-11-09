@@ -1,0 +1,123 @@
+{
+  "page": {
+    "modes": {
+      "rule": "Rule",
+      "global": "Global",
+      "direct": "Direct"
+    },
+    "actions": {
+      "toggleChain": "پراکسی زنجیره‌ای",
+      "connect": "Connect",
+      "disconnect": "Disconnect",
+      "connecting": "Connecting...",
+      "clearChainConfig": "Delete Chain Config",
+      "speedTest": "تست سرعت",
+      "speedTestStop": "توقف",
+      "toggleTree": "Group Tree"
+    },
+    "provider": {
+      "title": "تأمین‌کننده پروکسی",
+      "actions": {
+        "updateAll": "به‌روزرسانی همه",
+        "update": "به‌روزرسانی"
+      }
+    },
+    "rules": {
+      "title": "Proxy Rules",
+      "select": "Select Rules"
+    },
+    "labels": {
+      "proxyCount": "Proxy Count",
+      "delayCheckReset": "بررسی تأخیر برای لغو ثابت"
+    },
+    "tooltips": {
+      "locate": "موقعیت",
+      "delayCheck": "بررسی تأخیر",
+      "sortDefault": "مرتب‌سازی بر اساس پیش‌فرض",
+      "sortDelay": "مرتب‌سازی بر اساس تأخیر",
+      "sortName": "مرتب‌سازی بر اساس نام",
+      "delayCheckUrl": "آدرس بررسی تأخیر",
+      "showBasic": "پراکسی پایه",
+      "showDetail": "جزئیات پراکسی",
+      "filter": "فیلتر",
+      "speedTest": "Real download speed test via an isolated sing-box instance; the running proxy is untouched, about 5s per node"
+    },
+    "placeholders": {
+      "delayCheckUrl": "آدرس بررسی تأخیر"
+    },
+    "chain": {
+      "header": "Chain Proxy Config",
+      "warning": "Chain proxy will significantly reduce network speed. If you do not have a clear business need, or do not understand this configuration, keep it disabled.",
+      "empty": "Chain proxy will significantly reduce network speed. If you do not have a clear business need, or do not understand this configuration, keep it disabled.",
+      "instruction": "Click nodes in order to add to proxy chain",
+      "minimumNodes": "Chain proxy requires at least 2 nodes",
+      "minimumNodesHint": "Chain proxy requires at least 2 nodes. Please add one more node.",
+      "connectFailed": "Failed to connect to proxy chain",
+      "disconnectFailed": "Failed to disconnect from proxy chain",
+      "duplicateNode": "Proxy node already exists in chain",
+      "entryNode": "ورودی",
+      "exitNode": "خروجی"
+    },
+    "messages": {
+      "directMode": "حالت مستقیم"
+    },
+    "title": {
+      "default": "گروه‌های پراکسی",
+      "chainMode": "Proxy Chain Mode",
+      "tree": "Proxy Group Tree"
+    },
+    "tree": {
+      "root": "Root (MATCH)",
+      "groups": "Groups",
+      "ruleTargets": "Rule Targets",
+      "source": "Source",
+      "sourceProfile": "Profile",
+      "sourceRuntime": "Runtime",
+      "refresh": "Refresh",
+      "hint": "Left: group topology (drag / zoom). Right: proxy cards. Click a group circle to expand; expanding another group collapses the previous one.",
+      "empty": "No proxy-groups found in the current config.",
+      "loadFailed": "Failed to read the config file.",
+      "current": "Current Selection",
+      "resetView": "Reset View",
+      "collapseAll": "Collapse All",
+      "groupTopology": "GROUP TOPOLOGY",
+      "proxyNodes": "PROXY NODES",
+      "emptyHint": "No proxy nodes under the current group. Click another group circle on the left to switch.",
+      "checkConfig": "Config Check",
+      "strategy": "Strategy",
+      "protocol": "Protocol",
+      "server": "Server",
+      "members": "Members",
+      "groupKind": "Proxy Group",
+      "proxyKind": "Proxy Node"
+    }
+  },
+  "feedback": {
+    "notifications": {
+      "provider": {
+        "updateSuccess": "{{name}} updated successfully",
+        "updateFailed": "Failed to update {{name}}: {{message}}",
+        "genericError": "Update failed: {{message}}",
+        "none": "No providers available to update",
+        "allUpdated": "All providers updated successfully"
+      }
+    }
+  },
+  "components": {
+    "enums": {
+      "strategies": {
+        "select": "انتخاب پروکسی به صورت دستی",
+        "url-test": "انتخاب پروکسی بر اساس تأخیر آزمایش URL",
+        "fallback": "تعویض به پروکسی دیگر در صورت بروز خطا",
+        "load-balance": "توزیع پراکسی بر اساس توازن بار",
+        "relay": "عبور از زنجیره پروکسی تعریف شده"
+      },
+      "policies": {
+        "DIRECT": "داده‌ها به صورت مستقیم خروجی می‌شوند",
+        "REJECT": "درخواست‌ها را متوقف می‌کند",
+        "REJECT-DROP": "درخواست‌ها را نادیده می‌گیرد",
+        "PASS": "این قانون را در صورت تطابق نادیده می‌گیرد"
+      }
+    }
+  }
+}

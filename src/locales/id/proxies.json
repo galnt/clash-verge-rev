@@ -1,0 +1,123 @@
+{
+  "page": {
+    "modes": {
+      "rule": "Rule",
+      "global": "Global",
+      "direct": "Direct"
+    },
+    "actions": {
+      "toggleChain": "Proxy Rantai",
+      "connect": "Connect",
+      "disconnect": "Disconnect",
+      "connecting": "Connecting...",
+      "clearChainConfig": "Delete Chain Config",
+      "speedTest": "Uji Kecepatan",
+      "speedTestStop": "Hentikan",
+      "toggleTree": "Group Tree"
+    },
+    "provider": {
+      "title": "Penyedia Proksi",
+      "actions": {
+        "updateAll": "Perbarui Semua",
+        "update": "Perbarui"
+      }
+    },
+    "rules": {
+      "title": "Proxy Rules",
+      "select": "Select Rules"
+    },
+    "labels": {
+      "proxyCount": "Proxy Count",
+      "delayCheckReset": "Periksa keterlambatan untuk membatalkan tetap"
+    },
+    "tooltips": {
+      "locate": "Lokasi",
+      "delayCheck": "Periksa Keterlambatan",
+      "sortDefault": "Urutkan secara default",
+      "sortDelay": "Urutkan berdasarkan keterlambatan",
+      "sortName": "Urutkan berdasarkan nama",
+      "delayCheckUrl": "URL Periksa Keterlambatan",
+      "showBasic": "Dasar Proksi",
+      "showDetail": "Detail Proksi",
+      "filter": "Filter",
+      "speedTest": "Tes unduh nyata melalui instance sing-box terpisah; proxy yang berjalan tidak diubah, sekitar 5 detik per node"
+    },
+    "placeholders": {
+      "delayCheckUrl": "URL Periksa Keterlambatan"
+    },
+    "chain": {
+      "header": "Chain Proxy Config",
+      "warning": "Chain proxy will significantly reduce network speed. If you do not have a clear business need, or do not understand this configuration, keep it disabled.",
+      "empty": "Chain proxy will significantly reduce network speed. If you do not have a clear business need, or do not understand this configuration, keep it disabled.",
+      "instruction": "Click nodes in order to add to proxy chain",
+      "minimumNodes": "Chain proxy requires at least 2 nodes",
+      "minimumNodesHint": "Chain proxy requires at least 2 nodes. Please add one more node.",
+      "connectFailed": "Failed to connect to proxy chain",
+      "disconnectFailed": "Failed to disconnect from proxy chain",
+      "duplicateNode": "Proxy node already exists in chain",
+      "entryNode": "Masuk",
+      "exitNode": "Keluar"
+    },
+    "messages": {
+      "directMode": "Mode Langsung"
+    },
+    "title": {
+      "default": "Grup Proksi",
+      "chainMode": "Proxy Chain Mode",
+      "tree": "Proxy Group Tree"
+    },
+    "tree": {
+      "root": "Root (MATCH)",
+      "groups": "Groups",
+      "ruleTargets": "Rule Targets",
+      "source": "Source",
+      "sourceProfile": "Profile",
+      "sourceRuntime": "Runtime",
+      "refresh": "Refresh",
+      "hint": "Left: group topology (drag / zoom). Right: proxy cards. Click a group circle to expand; expanding another group collapses the previous one.",
+      "empty": "No proxy-groups found in the current config.",
+      "loadFailed": "Failed to read the config file.",
+      "current": "Current Selection",
+      "resetView": "Reset View",
+      "collapseAll": "Collapse All",
+      "groupTopology": "GROUP TOPOLOGY",
+      "proxyNodes": "PROXY NODES",
+      "emptyHint": "No proxy nodes under the current group. Click another group circle on the left to switch.",
+      "checkConfig": "Config Check",
+      "strategy": "Strategy",
+      "protocol": "Protocol",
+      "server": "Server",
+      "members": "Members",
+      "groupKind": "Proxy Group",
+      "proxyKind": "Proxy Node"
+    }
+  },
+  "feedback": {
+    "notifications": {
+      "provider": {
+        "updateSuccess": "{{name}} updated successfully",
+        "updateFailed": "Failed to update {{name}}: {{message}}",
+        "genericError": "Update failed: {{message}}",
+        "none": "No providers available to update",
+        "allUpdated": "All providers updated successfully"
+      }
+    }
+  },
+  "components": {
+    "enums": {
+      "strategies": {
+        "select": "Pilih proksi secara manual",
+        "url-test": "Pilih proksi berdasarkan keterlambatan tes URL",
+        "fallback": "Beralih ke proksi lain saat terjadi kesalahan",
+        "load-balance": "Distribusikan proksi berdasarkan penyeimbangan beban",
+        "relay": "Lewatkan melalui rantai proksi yang ditentukan"
+      },
+      "policies": {
+        "DIRECT": "Data langsung keluar",
+        "REJECT": "Mencegat permintaan",
+        "REJECT-DROP": "Membuang permintaan",
+        "PASS": "Lewati aturan ini saat cocok"
+      }
+    }
+  }
+}

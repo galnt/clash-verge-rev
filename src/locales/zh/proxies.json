@@ -1,0 +1,123 @@
+{
+  "page": {
+    "modes": {
+      "rule": "规则",
+      "global": "全局",
+      "direct": "直连"
+    },
+    "actions": {
+      "toggleChain": "链式代理",
+      "toggleTree": "分组树",
+      "connect": "连接",
+      "disconnect": "断开",
+      "connecting": "连接中...",
+      "clearChainConfig": "删除链式配置",
+      "speedTest": "测速",
+      "speedTestStop": "停止"
+    },
+    "provider": {
+      "title": "代理集合",
+      "actions": {
+        "updateAll": "更新全部",
+        "update": "更新"
+      }
+    },
+    "rules": {
+      "title": "代理规则",
+      "select": "选择规则"
+    },
+    "labels": {
+      "proxyCount": "节点数量",
+      "delayCheckReset": "进行延迟测试，以取消固定"
+    },
+    "tooltips": {
+      "locate": "当前节点",
+      "delayCheck": "延迟测试",
+      "sortDefault": "默认排序",
+      "sortDelay": "按延迟排序",
+      "sortName": "按名称排序",
+      "delayCheckUrl": "延迟测试链接",
+      "showBasic": "隐藏节点细节",
+      "showDetail": "展示节点细节",
+      "filter": "过滤节点",
+      "speedTest": "使用独立 sing-box 实例直接测速，不改动当前代理；每个节点约 5 秒，会消耗一定流量"
+    },
+    "placeholders": {
+      "delayCheckUrl": "延迟测试链接"
+    },
+    "chain": {
+      "header": "代理链配置",
+      "warning": "链式代理会显著降低网速。如果您没有明确的业务需求，或不了解此项配置，请保持关闭",
+      "empty": "链式代理会显著降低网速。如果您没有明确的业务需求，或不了解此项配置，请保持关闭",
+      "instruction": "顺序点击节点添加到代理链中",
+      "minimumNodes": "链式代理至少需要 2 个节点",
+      "minimumNodesHint": "链式代理至少需要 2 个节点，请再添加一个节点。",
+      "connectFailed": "连接链式代理失败",
+      "disconnectFailed": "断开链式代理失败",
+      "duplicateNode": "该节点已在链式代理表中",
+      "entryNode": "入口",
+      "exitNode": "出口"
+    },
+    "messages": {
+      "directMode": "直连模式"
+    },
+    "title": {
+      "default": "代理组",
+      "chainMode": "链式代理模式",
+      "tree": "代理分组树"
+    },
+    "tree": {
+      "root": "根 (MATCH)",
+      "groups": "代理组",
+      "ruleTargets": "规则跳转",
+      "source": "数据源",
+      "sourceProfile": "源文件",
+      "sourceRuntime": "运行时",
+      "refresh": "刷新",
+      "hint": "左侧为代理分组拓扑（拖拽平移、滚轮上下滚动、Ctrl+滚轮缩放），右侧为实体节点卡片；点击分组方块逐层展开，展开另一组会自动收起上一组。",
+      "empty": "当前配置文件中未读取到 proxy-groups。",
+      "loadFailed": "读取配置文件失败。",
+      "current": "当前选择",
+      "resetView": "重置视角",
+      "collapseAll": "折叠全部分组",
+      "groupTopology": "代理分组拓扑",
+      "proxyNodes": "实体服务器节点",
+      "emptyHint": "当前分组下没有可展示的实体节点；点击左侧其它分组圆圈切换。",
+      "checkConfig": "配置检查",
+      "strategy": "策略算法",
+      "protocol": "协议类型",
+      "server": "服务器地址",
+      "members": "下属节点数",
+      "groupKind": "代理分组",
+      "proxyKind": "实体节点"
+    }
+  },
+  "feedback": {
+    "notifications": {
+      "provider": {
+        "updateSuccess": "{{name}} 更新成功",
+        "updateFailed": "{{name}} 更新失败: {{message}}",
+        "genericError": "更新失败: {{message}}",
+        "none": "没有可更新的 provider",
+        "allUpdated": "所有 provider 均已更新"
+      }
+    }
+  },
+  "components": {
+    "enums": {
+      "strategies": {
+        "select": "手动选择代理",
+        "url-test": "根据 URL 测试延迟选择代理",
+        "fallback": "不可用时切换到另一个代理",
+        "load-balance": "根据负载均衡分配代理",
+        "relay": "根据定义的代理链传递"
+      },
+      "policies": {
+        "DIRECT": "直接连接 (DIRECT)",
+        "REJECT": "拦截请求 (REJECT)",
+        "REJECT-DROP": "丢弃请求 (REJECT-DROP)",
+        "PASS": "跳过此项 (PASS)"
+      }
+    }
+  }
+}

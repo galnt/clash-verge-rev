@@ -1,0 +1,123 @@
+{
+  "page": {
+    "modes": {
+      "rule": "Rule",
+      "global": "Global",
+      "direct": "Direct"
+    },
+    "actions": {
+      "toggleChain": "Proxy en cadena",
+      "connect": "Connect",
+      "disconnect": "Disconnect",
+      "connecting": "Connecting...",
+      "clearChainConfig": "Delete Chain Config",
+      "speedTest": "Prueba de velocidad",
+      "speedTestStop": "Detener",
+      "toggleTree": "Group Tree"
+    },
+    "provider": {
+      "title": "Proveedor de proxies",
+      "actions": {
+        "updateAll": "Actualizar todo",
+        "update": "Actualizar"
+      }
+    },
+    "rules": {
+      "title": "Proxy Rules",
+      "select": "Select Rules"
+    },
+    "labels": {
+      "proxyCount": "Número de nodos",
+      "delayCheckReset": "Realizar prueba de latencia para cancelar la fijación"
+    },
+    "tooltips": {
+      "locate": "Nodo actual",
+      "delayCheck": "Prueba de latencia",
+      "sortDefault": "Ordenación predeterminada",
+      "sortDelay": "Ordenar por latencia",
+      "sortName": "Ordenar por nombre",
+      "delayCheckUrl": "URL de prueba de latencia",
+      "showBasic": "Ocultar detalles del nodo",
+      "showDetail": "Mostrar detalles del nodo",
+      "filter": "Filtrar nodos",
+      "speedTest": "Prueba de descarga real mediante una instancia aislada de sing-box; el proxy en uso no se modifica, unos 5 s por nodo"
+    },
+    "placeholders": {
+      "delayCheckUrl": "URL de prueba de latencia"
+    },
+    "chain": {
+      "header": "Chain Proxy Config",
+      "warning": "Chain proxy will significantly reduce network speed. If you do not have a clear business need, or do not understand this configuration, keep it disabled.",
+      "empty": "Chain proxy will significantly reduce network speed. If you do not have a clear business need, or do not understand this configuration, keep it disabled.",
+      "instruction": "Click nodes in order to add to proxy chain",
+      "minimumNodes": "Chain proxy requires at least 2 nodes",
+      "minimumNodesHint": "Chain proxy requires at least 2 nodes. Please add one more node.",
+      "connectFailed": "Failed to connect to proxy chain",
+      "disconnectFailed": "Failed to disconnect from proxy chain",
+      "duplicateNode": "Proxy node already exists in chain",
+      "entryNode": "Entrada",
+      "exitNode": "Salida"
+    },
+    "messages": {
+      "directMode": "Modo de conexión directa"
+    },
+    "title": {
+      "default": "Grupos de proxies",
+      "chainMode": "Proxy Chain Mode",
+      "tree": "Proxy Group Tree"
+    },
+    "tree": {
+      "root": "Root (MATCH)",
+      "groups": "Groups",
+      "ruleTargets": "Rule Targets",
+      "source": "Source",
+      "sourceProfile": "Profile",
+      "sourceRuntime": "Runtime",
+      "refresh": "Refresh",
+      "hint": "Left: group topology (drag / zoom). Right: proxy cards. Click a group circle to expand; expanding another group collapses the previous one.",
+      "empty": "No proxy-groups found in the current config.",
+      "loadFailed": "Failed to read the config file.",
+      "current": "Current Selection",
+      "resetView": "Reset View",
+      "collapseAll": "Collapse All",
+      "groupTopology": "GROUP TOPOLOGY",
+      "proxyNodes": "PROXY NODES",
+      "emptyHint": "No proxy nodes under the current group. Click another group circle on the left to switch.",
+      "checkConfig": "Config Check",
+      "strategy": "Strategy",
+      "protocol": "Protocol",
+      "server": "Server",
+      "members": "Members",
+      "groupKind": "Proxy Group",
+      "proxyKind": "Proxy Node"
+    }
+  },
+  "feedback": {
+    "notifications": {
+      "provider": {
+        "updateSuccess": "{{name}} updated successfully",
+        "updateFailed": "Failed to update {{name}}: {{message}}",
+        "genericError": "Update failed: {{message}}",
+        "none": "No providers available to update",
+        "allUpdated": "All providers updated successfully"
+      }
+    }
+  },
+  "components": {
+    "enums": {
+      "strategies": {
+        "select": "Seleccionar proxy manualmente",
+        "url-test": "Seleccionar proxy según la prueba de latencia de la URL",
+        "fallback": "Cambiar a otro proxy cuando no esté disponible",
+        "load-balance": "Asignar proxy según el equilibrio de carga",
+        "relay": "Transferir según la cadena de proxy definida"
+      },
+      "policies": {
+        "DIRECT": "Conexión directa",
+        "REJECT": "Rechazar solicitud",
+        "REJECT-DROP": "Descartar solicitud",
+        "PASS": "Saltar esta regla"
+      }
+    }
+  }
+}

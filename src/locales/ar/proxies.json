@@ -1,0 +1,123 @@
+{
+  "page": {
+    "modes": {
+      "rule": "Rule",
+      "global": "Global",
+      "direct": "Direct"
+    },
+    "actions": {
+      "toggleChain": "بروكسي السلسلة",
+      "connect": "Connect",
+      "disconnect": "Disconnect",
+      "connecting": "Connecting...",
+      "clearChainConfig": "Delete Chain Config",
+      "speedTest": "اختبار السرعة",
+      "speedTestStop": "إيقاف",
+      "toggleTree": "Group Tree"
+    },
+    "provider": {
+      "title": "مزود الوكيل",
+      "actions": {
+        "updateAll": "تحديث الكل",
+        "update": "تحديث"
+      }
+    },
+    "rules": {
+      "title": "Proxy Rules",
+      "select": "Select Rules"
+    },
+    "labels": {
+      "proxyCount": "Proxy Count",
+      "delayCheckReset": "فحص التأخير لإلغاء الثابت"
+    },
+    "tooltips": {
+      "locate": "الموقع",
+      "delayCheck": "فحص التأخير",
+      "sortDefault": "الترتيب الافتراضي",
+      "sortDelay": "الترتيب حسب التأخير",
+      "sortName": "الترتيب حسب الاسم",
+      "delayCheckUrl": "رابط فحص التأخير",
+      "showBasic": "إعدادات الوكيل الأساسية",
+      "showDetail": "تفاصيل الوكيل",
+      "filter": "تصفية",
+      "speedTest": "Real download speed test via an isolated sing-box instance; the running proxy is untouched, about 5s per node"
+    },
+    "placeholders": {
+      "delayCheckUrl": "رابط فحص التأخير"
+    },
+    "chain": {
+      "header": "Chain Proxy Config",
+      "warning": "Chain proxy will significantly reduce network speed. If you do not have a clear business need, or do not understand this configuration, keep it disabled.",
+      "empty": "Chain proxy will significantly reduce network speed. If you do not have a clear business need, or do not understand this configuration, keep it disabled.",
+      "instruction": "Click nodes in order to add to proxy chain",
+      "minimumNodes": "Chain proxy requires at least 2 nodes",
+      "minimumNodesHint": "Chain proxy requires at least 2 nodes. Please add one more node.",
+      "connectFailed": "Failed to connect to proxy chain",
+      "disconnectFailed": "Failed to disconnect from proxy chain",
+      "duplicateNode": "Proxy node already exists in chain",
+      "entryNode": "مدخل",
+      "exitNode": "مخرج"
+    },
+    "messages": {
+      "directMode": "الوضع المباشر"
+    },
+    "title": {
+      "default": "مجموعات الوكلاء",
+      "chainMode": "Proxy Chain Mode",
+      "tree": "Proxy Group Tree"
+    },
+    "tree": {
+      "root": "Root (MATCH)",
+      "groups": "Groups",
+      "ruleTargets": "Rule Targets",
+      "source": "Source",
+      "sourceProfile": "Profile",
+      "sourceRuntime": "Runtime",
+      "refresh": "Refresh",
+      "hint": "Left: group topology (drag / zoom). Right: proxy cards. Click a group circle to expand; expanding another group collapses the previous one.",
+      "empty": "No proxy-groups found in the current config.",
+      "loadFailed": "Failed to read the config file.",
+      "current": "Current Selection",
+      "resetView": "Reset View",
+      "collapseAll": "Collapse All",
+      "groupTopology": "GROUP TOPOLOGY",
+      "proxyNodes": "PROXY NODES",
+      "emptyHint": "No proxy nodes under the current group. Click another group circle on the left to switch.",
+      "checkConfig": "Config Check",
+      "strategy": "Strategy",
+      "protocol": "Protocol",
+      "server": "Server",
+      "members": "Members",
+      "groupKind": "Proxy Group",
+      "proxyKind": "Proxy Node"
+    }
+  },
+  "feedback": {
+    "notifications": {
+      "provider": {
+        "updateSuccess": "{{name}} updated successfully",
+        "updateFailed": "Failed to update {{name}}: {{message}}",
+        "genericError": "Update failed: {{message}}",
+        "none": "No providers available to update",
+        "allUpdated": "All providers updated successfully"
+      }
+    }
+  },
+  "components": {
+    "enums": {
+      "strategies": {
+        "select": "اختيار الوكيل يدويًا",
+        "url-test": "اختيار الوكيل بناءً على تأخير اختبار الرابط",
+        "fallback": "التبديل إلى وكيل آخر عند حدوث خطأ",
+        "load-balance": "توزيع التحميل بين الوكلاء",
+        "relay": "التمرير عبر سلسلة الوكلاء المحددة"
+      },
+      "policies": {
+        "DIRECT": "البيانات تخرج مباشرة",
+        "REJECT": "رفض الطلبات",
+        "REJECT-DROP": "تجاهل الطلبات",
+        "PASS": "تخطي هذه القاعدة عند المطابقة"
+      }
+    }
+  }
+}

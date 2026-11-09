@@ -1,0 +1,123 @@
+{
+  "page": {
+    "modes": {
+      "rule": "규칙",
+      "global": "전역",
+      "direct": "직접"
+    },
+    "actions": {
+      "toggleChain": "체인 프록시",
+      "connect": "연결",
+      "disconnect": "연결 해제",
+      "connecting": "연결 중...",
+      "clearChainConfig": "체인 구성 삭제",
+      "speedTest": "속도 테스트",
+      "speedTestStop": "중지",
+      "toggleTree": "Group Tree"
+    },
+    "provider": {
+      "title": "프록시 제공자",
+      "actions": {
+        "updateAll": "모두 업데이트",
+        "update": "업데이트"
+      }
+    },
+    "rules": {
+      "title": "프록시 규칙",
+      "select": "규칙 선택"
+    },
+    "labels": {
+      "proxyCount": "프록시 개수",
+      "delayCheckReset": "고정 취소를 위한 지연 확인"
+    },
+    "tooltips": {
+      "locate": "위치 찾기",
+      "delayCheck": "지연 확인",
+      "sortDefault": "기본 정렬",
+      "sortDelay": "지연으로 정렬",
+      "sortName": "이름으로 정렬",
+      "delayCheckUrl": "지연 확인 URL",
+      "showBasic": "프록시 기본",
+      "showDetail": "프록시 상세",
+      "filter": "필터",
+      "speedTest": "별도 sing-box 인스턴스로 실제 다운로드 속도를 측정합니다. 실행 중인 프록시는 변경되지 않으며 노드당 약 5초"
+    },
+    "placeholders": {
+      "delayCheckUrl": "지연 확인 URL"
+    },
+    "chain": {
+      "header": "체인 프록시 구성",
+      "warning": "체인 프록시는 네트워크 속도를 크게 저하시킬 수 있습니다. 명확한 업무상 필요가 없거나 이 구성을 이해하지 못한다면 비활성화 상태로 두세요.",
+      "empty": "체인 프록시는 네트워크 속도를 크게 저하시킬 수 있습니다. 명확한 업무상 필요가 없거나 이 구성을 이해하지 못한다면 비활성화 상태로 두세요.",
+      "instruction": "프록시 체인에 추가하려면 순서대로 노드를 클릭하세요",
+      "minimumNodes": "체인 프록시는 최소 2개의 노드가 필요합니다",
+      "minimumNodesHint": "체인 프록시는 최소 2개의 노드가 필요합니다. 하나 더 추가하세요.",
+      "connectFailed": "프록시 체인 연결 실패",
+      "disconnectFailed": "프록시 체인 연결 해제 실패",
+      "duplicateNode": "프록시 노드가 체인에 이미 존재합니다",
+      "entryNode": "입구",
+      "exitNode": "출구"
+    },
+    "messages": {
+      "directMode": "직접 모드"
+    },
+    "title": {
+      "default": "프록시 그룹",
+      "chainMode": "프록시 체인 모드",
+      "tree": "Proxy Group Tree"
+    },
+    "tree": {
+      "root": "Root (MATCH)",
+      "groups": "Groups",
+      "ruleTargets": "Rule Targets",
+      "source": "Source",
+      "sourceProfile": "Profile",
+      "sourceRuntime": "Runtime",
+      "refresh": "Refresh",
+      "hint": "Left: group topology (drag / zoom). Right: proxy cards. Click a group circle to expand; expanding another group collapses the previous one.",
+      "empty": "No proxy-groups found in the current config.",
+      "loadFailed": "Failed to read the config file.",
+      "current": "Current Selection",
+      "resetView": "Reset View",
+      "collapseAll": "Collapse All",
+      "groupTopology": "GROUP TOPOLOGY",
+      "proxyNodes": "PROXY NODES",
+      "emptyHint": "No proxy nodes under the current group. Click another group circle on the left to switch.",
+      "checkConfig": "Config Check",
+      "strategy": "Strategy",
+      "protocol": "Protocol",
+      "server": "Server",
+      "members": "Members",
+      "groupKind": "Proxy Group",
+      "proxyKind": "Proxy Node"
+    }
+  },
+  "feedback": {
+    "notifications": {
+      "provider": {
+        "updateSuccess": "{{name}} 업데이트 성공",
+        "updateFailed": "{{name}} 업데이트 실패: {{message}}",
+        "genericError": "업데이트 실패: {{message}}",
+        "none": "업데이트할 제공자가 없습니다",
+        "allUpdated": "모든 제공자가 업데이트되었습니다"
+      }
+    }
+  },
+  "components": {
+    "enums": {
+      "strategies": {
+        "select": "수동으로 프록시 선택",
+        "url-test": "URL 테스트 지연을 기준으로 프록시 선택",
+        "fallback": "오류 발생 시 다른 프록시로 전환",
+        "load-balance": "부하 분산에 따라 프록시 분배",
+        "relay": "정의된 프록시 체인을 통과"
+      },
+      "policies": {
+        "DIRECT": "데이터가 직접 아웃바운드로 이동",
+        "REJECT": "요청 차단",
+        "REJECT-DROP": "요청 폐기",
+        "PASS": "일치할 경우 이 규칙 건너뛰기"
+      }
+    }
+  }
+}
