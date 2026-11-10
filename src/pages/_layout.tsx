@@ -44,10 +44,7 @@ import { LayoutItem } from '@/components/layout/layout-item'
 import { LayoutTraffic } from '@/components/layout/layout-traffic'
 import { NoticeManager } from '@/components/layout/notice-manager'
 import { UpdateButton } from '@/components/layout/update-button'
-import {
-  WindowControls,
-  WindowResizeHandles,
-} from '@/components/layout/window-controller'
+import { WindowControls } from '@/components/layout/window-controller'
 import { useI18n } from '@/hooks/use-i18n'
 import { useVerge } from '@/hooks/use-verge'
 import { useVisibility } from '@/hooks/use-visibility'
@@ -67,15 +64,45 @@ import {
   preloadLogsPage,
   preloadNavigationRoutes,
 } from './_navigation'
+import { navigationItems } from './_navigation-meta'
 
 import 'dayjs/locale/ru'
 import 'dayjs/locale/zh-cn'
 
 const LogsPage = lazy(() => preloadLogsPage())
 
+const titleBarNavItems = [
+  navigationItems.proxies,
+  navigationItems.profiles,
+  navigationItems.connections,
+  navigationItems.logs,
+  navigationItems.settings,
+]
+
 type NavItem = (typeof navItems)[number]
 
 type MenuContextPosition = { top: number; left: number }
+
+const TitleBarNav = () => {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+  const { pathname } = useLocation()
+
+  return (
+    <nav className="the_titlebar-nav" data-tauri-drag-region="false">
+      {titleBarNavItems.map((item) => (
+        <button
+          key={item.path}
+          type="button"
+          className={`the_titlebar-nav-item${pathname === item.path ? ' is-active' : ''}`}
+          onClick={() => navigate(item.path)}
+        >
+          {t(item.label).replace(/\s/g, '')}
+        </button>
+      ))}
+    </nav>
+  )
+}
 
 interface SortableNavMenuItemProps {
   item: NavItem
@@ -221,16 +248,16 @@ const Layout = () => {
   }, [navCollapsed, patchVerge])
 
   const customTitlebar = useMemo(
-    () =>
-      decorated === false ? (
-        <div className="the_titlebar">
-          <div
-            className="the_titlebar-drag-region"
-            data-tauri-drag-region="true"
-          />
-          <WindowControls ref={windowControlsRef} />
-        </div>
-      ) : null,
+    () => (
+      <div className="the_titlebar">
+        <TitleBarNav />
+        <div
+          className="the_titlebar-drag-region"
+          data-tauri-drag-region="true"
+        />
+        {decorated === false && <WindowControls ref={windowControlsRef} />}
+      </div>
+    ),
     [decorated],
   )
 
@@ -335,9 +362,6 @@ const Layout = () => {
             : {},
         ]}
       >
-        {decorated === false && <WindowResizeHandles />}
-
-        {/* Custom titlebar - rendered only when decorated is false, memoized for performance */}
         {customTitlebar}
 
         <div className="layout-content">

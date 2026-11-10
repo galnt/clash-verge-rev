@@ -14,20 +14,17 @@ const LIGHT_BACKGROUND_COLOR: Color = Color(245, 245, 245, 255); // #F5F5F5
 const DARK_BACKGROUND_HEX: &str = "#2E303D";
 const LIGHT_BACKGROUND_HEX: &str = "#F5F5F5";
 
-// 定义默认窗口尺寸常量
-const DEFAULT_WIDTH: f64 = 940.0;
-const DEFAULT_HEIGHT: f64 = 700.0;
+// 窗口固定为 1280x800，不允许拖拽调整
+const DEFAULT_WIDTH: f64 = 1280.0;
+const DEFAULT_HEIGHT: f64 = 800.0;
 
-const MINIMAL_WIDTH: f64 = 520.0;
-const MINIMAL_HEIGHT: f64 = 520.0;
-
-#[cfg(target_os = "linux")]
-const DEFAULT_DECORATIONS: bool = false;
-#[cfg(not(target_os = "linux"))]
+#[cfg(target_os = "macos")]
 const DEFAULT_DECORATIONS: bool = true;
+#[cfg(not(target_os = "macos"))]
+const DEFAULT_DECORATIONS: bool = false;
 
 const fn restored_window_size_is_too_small(width: u32, height: u32) -> bool {
-    width < MINIMAL_WIDTH as u32 || height < MINIMAL_HEIGHT as u32
+    width < DEFAULT_WIDTH as u32 || height < DEFAULT_HEIGHT as u32
 }
 
 fn restore_default_size_if_needed(window: &WebviewWindow) {
@@ -89,7 +86,8 @@ pub async fn build_new_window() -> Result<WebviewWindow, String> {
     .decorations(DEFAULT_DECORATIONS)
     .fullscreen(false)
     .inner_size(DEFAULT_WIDTH, DEFAULT_HEIGHT)
-    .min_inner_size(MINIMAL_WIDTH, MINIMAL_HEIGHT)
+    .min_inner_size(DEFAULT_WIDTH, DEFAULT_HEIGHT)
+    .resizable(false)
     .visible(false) // 等待主题色准备好后再展示，避免启动色差
     .initialization_script(&initial_script)
     .general_autofill_enabled(false) // 禁用自动填充

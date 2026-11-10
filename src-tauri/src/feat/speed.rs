@@ -195,11 +195,7 @@ fn get_mbps(m: &Mapping, key: &str) -> Option<u64> {
     match get(m, key)? {
         YamlValue::Number(n) => n.as_u64(),
         YamlValue::String(s) => {
-            let digits: String = s
-                .trim()
-                .chars()
-                .take_while(|c| c.is_ascii_digit())
-                .collect();
+            let digits: String = s.trim().chars().take_while(|c| c.is_ascii_digit()).collect();
             digits.parse().ok()
         }
         _ => None,
@@ -307,9 +303,7 @@ fn transport_json(m: &Mapping) -> Option<JsonValue> {
 
     if is_ws {
         // mihomo 用 ws-opts.v2ray-http-upgrade 表达 httpupgrade。
-        let http_upgrade = ws_opts
-            .and_then(|o| get_bool(o, "v2ray-http-upgrade"))
-            .unwrap_or(false);
+        let http_upgrade = ws_opts.and_then(|o| get_bool(o, "v2ray-http-upgrade")).unwrap_or(false);
         let mut t = JsonMap::new();
         if http_upgrade {
             t.insert("type".into(), json!("httpupgrade"));
@@ -366,13 +360,11 @@ fn transport_json(m: &Mapping) -> Option<JsonValue> {
                 t.insert("path".into(), json!(path));
             }
             // host 在 h2-opts 是列表、http-opts 里则放在 headers.Host。
-            let host = get(opts, "host")
-                .and_then(listable_str)
-                .or_else(|| {
-                    get(opts, "headers")
-                        .and_then(|h| h.as_mapping())
-                        .and_then(|h| get_str(h, "Host"))
-                });
+            let host = get(opts, "host").and_then(listable_str).or_else(|| {
+                get(opts, "headers")
+                    .and_then(|h| h.as_mapping())
+                    .and_then(|h| get_str(h, "Host"))
+            });
             if let Some(host) = host {
                 t.insert("host".into(), json!([host]));
             }
@@ -406,10 +398,7 @@ fn ss_plugin(m: &Mapping) -> SsPlugin {
             if let Some(host) = opts.and_then(|o| get_str(o, "host")) {
                 parts.push(format!("obfs-host={host}"));
             }
-            SsPlugin::Supported(
-                "obfs-local".into(),
-                (!parts.is_empty()).then(|| parts.join(";")),
-            )
+            SsPlugin::Supported("obfs-local".into(), (!parts.is_empty()).then(|| parts.join(";")))
         }
         // v2ray-plugin 的参数是位置式 flag，顺序与 Throne 保持一致。
         "v2ray-plugin" => {
@@ -429,10 +418,7 @@ fn ss_plugin(m: &Mapping) -> SsPlugin {
             if opts.and_then(|o| get_bool(o, "mux")).unwrap_or(false) {
                 parts.push("mux".to_string());
             }
-            SsPlugin::Supported(
-                "v2ray-plugin".into(),
-                (!parts.is_empty()).then(|| parts.join(";")),
-            )
+            SsPlugin::Supported("v2ray-plugin".into(), (!parts.is_empty()).then(|| parts.join(";")))
         }
         _ => SsPlugin::Unsupported,
     }
@@ -645,11 +631,7 @@ fn apply_ssh(m: &Mapping, o: &mut JsonMap<String, JsonValue>) {
     insert_opt_str(o, "user", get_str(m, "username"));
     insert_opt_str(o, "password", get_str(m, "password"));
     insert_opt_str(o, "private_key", get_str(m, "private-key"));
-    insert_opt_str(
-        o,
-        "private_key_passphrase",
-        get_str(m, "private-key-passphrase"),
-    );
+    insert_opt_str(o, "private_key_passphrase", get_str(m, "private-key-passphrase"));
     insert_opt_str(o, "host_key", get(m, "host-key").and_then(listable_str));
     if let Some(algorithms) = get(m, "host-key-algorithms") {
         let value = y2j(algorithms);

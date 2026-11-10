@@ -116,8 +116,7 @@ impl CoreSession {
     /// `SpeedTest`：core 会用请求里的 config 建一个临时盒，按 tag 拨号测速。
     pub async fn speed_test(&self, request: &proto::SpeedTestRequest) -> Result<Vec<proto::SpeedTestResult>> {
         let data = self.call("SpeedTest", &request.encode_to_vec()).await?;
-        let response =
-            proto::SpeedTestResponse::decode(&data[..]).context("decode SpeedTestResponse failed")?;
+        let response = proto::SpeedTestResponse::decode(&data[..]).context("decode SpeedTestResponse failed")?;
         Ok(response.results)
     }
 
@@ -353,8 +352,14 @@ mod tests {
         assert_eq!(results.len(), 1, "one result per tag");
         let result = &results[0];
         assert_eq!(result.outbound_tag.as_deref(), Some("proxy-0"));
-        assert!(result.dl_bytes.unwrap_or_default() > 0, "should download bytes: {result:?}");
-        assert!(!result.dl_speed.clone().unwrap_or_default().is_empty(), "speed string: {result:?}");
+        assert!(
+            result.dl_bytes.unwrap_or_default() > 0,
+            "should download bytes: {result:?}"
+        );
+        assert!(
+            !result.dl_speed.clone().unwrap_or_default().is_empty(),
+            "speed string: {result:?}"
+        );
     }
 
     /// 8 个节点并发测速：证明同一条管道上多请求并行可用，且结果按 reqId 正确归属。
@@ -398,9 +403,7 @@ mod tests {
                     test_download: Some(true),
                     test_upload: Some(false),
                     simple_download: Some(true),
-                    simple_download_addr: Some(
-                        "https://speed.cloudflare.com/__down?bytes=1000000".to_owned(),
-                    ),
+                    simple_download_addr: Some("https://speed.cloudflare.com/__down?bytes=1000000".to_owned()),
                     timeout_ms: Some(20000),
                     only_country: Some(false),
                     country_concurrency: Some(5),
@@ -437,7 +440,11 @@ mod tests {
 /// 定位 core 可执行文件：环境变量 → 应用目录 → 开发态 sidecar 目录。
 #[allow(clippy::items_after_test_module)]
 pub fn resolve_core_exe() -> Result<PathBuf> {
-    let file_name = if cfg!(windows) { "verge-throne-core.exe" } else { "verge-throne-core" };
+    let file_name = if cfg!(windows) {
+        "verge-throne-core.exe"
+    } else {
+        "verge-throne-core"
+    };
 
     if let Some(custom) = std::env::var_os("CLASH_VERGE_THRONE_CORE") {
         let path = PathBuf::from(custom);
@@ -458,23 +465,24 @@ pub fn resolve_core_exe() -> Result<PathBuf> {
         for suffix in ["x86_64-pc-windows-msvc", "aarch64-pc-windows-msvc"] {
             candidates.push(sidecar.join(format!("verge-throne-core-{suffix}.exe")));
         }
-        for suffix in ["aarch64-apple-darwin", "x86_64-apple-darwin", "x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu"] {
+        for suffix in [
+            "aarch64-apple-darwin",
+            "x86_64-apple-darwin",
+            "x86_64-unknown-linux-gnu",
+            "aarch64-unknown-linux-gnu",
+        ] {
             candidates.push(sidecar.join(format!("verge-throne-core-{suffix}")));
         }
     }
 
-    candidates
-        .iter()
-        .find(|path| path.is_file())
-        .cloned()
-        .ok_or_else(|| {
-            anyhow!(
-                "verge-throne-core not found (build it with scripts/build-speedtest.mjs); tried: {}",
-                candidates
-                    .iter()
-                    .map(|path| path.display().to_string())
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            )
-        })
+    candidates.iter().find(|path| path.is_file()).cloned().ok_or_else(|| {
+        anyhow!(
+            "verge-throne-core not found (build it with scripts/build-speedtest.mjs); tried: {}",
+            candidates
+                .iter()
+                .map(|path| path.display().to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    })
 }

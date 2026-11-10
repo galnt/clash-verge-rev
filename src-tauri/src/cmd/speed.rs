@@ -229,11 +229,7 @@ fn build_request(job: &feat::SpeedJob, tag: &str) -> Result<proto::SpeedTestRequ
     })
 }
 
-fn probe_from(
-    outcome: Result<Vec<proto::SpeedTestResult>>,
-    name: &str,
-    elapsed_ms: u64,
-) -> feat::ProbeResult {
+fn probe_from(outcome: Result<Vec<proto::SpeedTestResult>>, name: &str, elapsed_ms: u64) -> feat::ProbeResult {
     let failed = |message: String| feat::ProbeResult {
         name: name.to_owned(),
         dl_speed: String::new(),
