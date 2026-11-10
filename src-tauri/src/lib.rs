@@ -124,6 +124,8 @@ mod app_init {
         let window_state_plugin = tauri_plugin_window_state::Builder::new()
             .with_filename(files::WINDOW_STATE)
             .with_state_flags(tauri_plugin_window_state::StateFlags::default())
+            // 主窗口固定 1280x800 且无边框，禁止用历史 window_state.json 覆盖尺寸/装饰/最大化状态
+            .skip_initial_state("main")
             .build();
         app.handle().plugin(window_state_plugin)?;
         Ok(())

@@ -396,7 +396,7 @@ impl IVerge {
             env_type: Some("bash".into()),
             #[cfg(target_os = "windows")]
             env_type: Some("powershell".into()),
-            start_page: Some("/".into()),
+            start_page: Some("/proxies".into()),
             traffic_graph: Some(true),
             enable_memory_usage: Some(true),
             enable_group_icon: Some(true),

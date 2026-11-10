@@ -1,14 +1,22 @@
-import { useEffect, useState } from 'react'
+import { useLayoutEffect, useState } from 'react'
 
 export const useWindowWidth = () => {
-  const [width, setWidth] = useState(() => document.body.clientWidth)
+  const [width, setWidth] = useState(() => window.innerWidth)
 
-  useEffect(() => {
-    const handleResize = () => setWidth(document.body.clientWidth)
+  useLayoutEffect(() => {
+    const measure = () => {
+      const next = document.body.clientWidth || window.innerWidth
+      setWidth((prev) => (prev === next ? prev : next))
+    }
 
-    window.addEventListener('resize', handleResize)
+    // ResizeObserver 的首次回调会在本帧绘制前送达，覆盖首帧估算值
+    const observer = new ResizeObserver(measure)
+    observer.observe(document.body)
+    observer.observe(document.documentElement)
+    window.addEventListener('resize', measure)
     return () => {
-      window.removeEventListener('resize', handleResize)
+      observer.disconnect()
+      window.removeEventListener('resize', measure)
     }
   }, [])
 

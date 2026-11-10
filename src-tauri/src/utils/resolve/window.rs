@@ -23,19 +23,8 @@ const DEFAULT_DECORATIONS: bool = true;
 #[cfg(not(target_os = "macos"))]
 const DEFAULT_DECORATIONS: bool = false;
 
-const fn restored_window_size_is_too_small(width: u32, height: u32) -> bool {
-    width < DEFAULT_WIDTH as u32 || height < DEFAULT_HEIGHT as u32
-}
-
-fn restore_default_size_if_needed(window: &WebviewWindow) {
-    let Ok(size) = window.outer_size() else {
-        return;
-    };
-
-    if !restored_window_size_is_too_small(size.width, size.height) {
-        return;
-    }
-
+/// 强制主窗口为固定尺寸（逻辑像素），不受历史窗口状态影响
+fn enforce_fixed_window_size(window: &WebviewWindow) {
     logging_error!(
         Type::Window,
         window.set_size(tauri::LogicalSize::new(DEFAULT_WIDTH, DEFAULT_HEIGHT))
@@ -49,7 +38,7 @@ pub async fn build_new_window() -> Result<WebviewWindow, String> {
 
     let config = Config::verge().await;
     let latest = config.latest_arc();
-    let start_page = latest.start_page.as_deref().unwrap_or("/");
+    let start_page = latest.start_page.as_deref().unwrap_or("/proxies");
     let initial_theme_mode = match latest.theme_mode.as_deref() {
         Some("dark") => "dark",
         Some("light") => "light",
@@ -109,7 +98,7 @@ pub async fn build_new_window() -> Result<WebviewWindow, String> {
     match builder.build() {
         Ok(window) => {
             logging_error!(Type::Window, window.set_background_color(Some(background_color)));
-            restore_default_size_if_needed(&window);
+            enforce_fixed_window_size(&window);
             // 全新窗口的页面即为最新状态，丢弃旧窗口遗留的待重载标记，避免多余 reload
             #[cfg(target_os = "macos")]
             take_webview_needs_reload();

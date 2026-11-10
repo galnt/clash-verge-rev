@@ -95,6 +95,13 @@ interface Transform {
 
 const DEFAULT_TRANSFORM: Transform = { x: 0, y: 0, scale: 1 }
 
+/**
+ * 首帧按窗口宽度估算栏宽：固定 1280 窗口下右栏约 620，
+ * 代入 fitColumns 正好是 3 列，避免用 420 占位值算出 2 列。
+ */
+const estimatePaneWidth = () =>
+  Math.max(420, Math.min(620, Math.floor(window.innerWidth / 2)))
+
 /** 滚轮上下滚动的回弹余量 */
 const SCROLL_SLACK = 40
 
@@ -278,8 +285,8 @@ export const ProxyGroupTree = () => {
   const [showCheck, setShowCheck] = useState(false)
   const [transform, setTransform] = useState<Transform>(DEFAULT_TRANSFORM)
   const [dragging, setDragging] = useState(false)
-  const [width, setWidth] = useState(420)
-  const [rightWidth, setRightWidth] = useState(420)
+  const [width, setWidth] = useState(estimatePaneWidth)
+  const [rightWidth, setRightWidth] = useState(estimatePaneWidth)
   const [sortTypes, setSortTypes] = useState<Record<string, ProxySortType>>({})
   const [collapsedSections, setCollapsedSections] = useState<
     Record<string, boolean>
@@ -557,18 +564,23 @@ export const ProxyGroupTree = () => {
     ],
   )
 
+  // 树数据是异步加载的，左右栏 DOM 就绪后需要重新挂观察器
+  const hasTree = tree.groupNames.length > 0
+
   useLayoutEffect(() => {
     const left = leftRef.current
     const right = rightRef.current
     if (!left) return
-    const observer = new ResizeObserver(() => {
+    const measure = () => {
       setWidth(left.clientWidth)
       if (right) setRightWidth(right.clientWidth)
-    })
+    }
+    // observe 后的首次回调会在本帧绘制前送达，首帧宽度已由 estimatePaneWidth 保证
+    const observer = new ResizeObserver(measure)
     observer.observe(left)
     if (right) observer.observe(right)
     return () => observer.disconnect()
-  }, [])
+  }, [hasTree])
 
   // 实时速率：按连接链里的出口节点（非分组名）汇总
   const { response: connectionResponse } = useConnectionData()
@@ -1384,23 +1396,35 @@ export const ProxyGroupTree = () => {
                                   }
                                   onClick={() => {
                                     // 从根组逐级往下：父组指向子组，最后一层指向节点
-                                    const path =
-                                      section.ownerPaths[name] ?? [owner]
+                                    const path = section.ownerPaths[name] ?? [
+                                      owner,
+                                    ]
                                     const targets: Array<{
                                       group: string
                                       proxy: string
                                     }> = []
-                                    for (let i = 0; i < path.length - 1; i += 1) {
+                                    for (
+                                      let i = 0;
+                                      i < path.length - 1;
+                                      i += 1
+                                    ) {
                                       const group = path[i]
                                       const proxy = path[i + 1]
                                       if (!group || !proxy || group === proxy)
                                         continue
-                                      if (runtimeGroups.get(group)?.now === proxy)
+                                      if (
+                                        runtimeGroups.get(group)?.now === proxy
+                                      )
                                         continue
                                       targets.push({ group, proxy })
                                     }
-                                    if (runtimeGroups.get(owner)?.now !== name) {
-                                      targets.push({ group: owner, proxy: name })
+                                    if (
+                                      runtimeGroups.get(owner)?.now !== name
+                                    ) {
+                                      targets.push({
+                                        group: owner,
+                                        proxy: name,
+                                      })
                                     }
 
                                     if (targets.length === 0) {
@@ -1515,7 +1539,6 @@ export const ProxyGroupTree = () => {
           ))}
         </svg>
       )}
-
     </Box>
   )
 }
