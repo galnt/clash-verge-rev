@@ -32,26 +32,14 @@ import {
 import { useTranslation } from 'react-i18next'
 
 import { BaseDialog } from '@/components/base'
-import { EditorViewer } from '@/components/profile/editor-viewer'
-import { GroupsEditorViewer } from '@/components/profile/groups-editor-viewer'
-import { RulesEditorViewer } from '@/components/profile/rules-editor-viewer'
-import { useEditorDocument } from '@/hooks/use-editor-document'
-import {
-  getNextUpdateTime,
-  readProfileFile,
-  saveProfileFile,
-  updateProfile,
-  viewProfile,
-} from '@/services/cmds'
-import { showNotice } from '@/services/notice-service'
+import { getNextUpdateTime, updateProfile } from '@/services/cmds'
 import { useLoadingCache, useSetLoadingCache } from '@/services/states'
 import type { TranslationKey } from '@/types/generated/i18n-keys'
 import { debugLog } from '@/utils/debug'
 import parseTraffic from '@/utils/parse-traffic'
 
 import { ProfileBox } from './profile-box'
-import { ProxiesEditorViewer } from './proxies-editor-viewer'
-import { QrViewer } from './qr-viewer'
+
 const round = keyframes`
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
@@ -64,7 +52,6 @@ export interface ProfileItemProps {
   mutateProfiles: () => Promise<void>
   onSelect: (force: boolean) => void
   onEdit: () => void
-  onSave?: (prev?: string, curr?: string) => void
   onDelete: () => void
   batchMode?: boolean
   isSelected?: boolean
@@ -84,7 +71,6 @@ const ProfileItemBase = (props: ProfileItemProps) => {
     mutateProfiles,
     onSelect,
     onEdit,
-    onSave,
     onDelete,
     batchMode,
     isSelected,
@@ -124,7 +110,7 @@ const ProfileItemBase = (props: ProfileItemProps) => {
     [itemData.uid, setLoadingCache],
   )
 
-  const { uid, name = 'Profile', extra, updated = 0, option } = itemData
+  const { name = 'Profile', extra, updated = 0 } = itemData
 
   // 获取下次更新时间的函数
   const fetchNextUpdateTimeCallback = useCallback(
@@ -296,37 +282,7 @@ const ProfileItemBase = (props: ProfileItemProps) => {
     }
   }, [forceRefresh, hasUrl, updated])
 
-  const [fileOpen, setFileOpen] = useState(false)
-  const [rulesOpen, setRulesOpen] = useState(false)
-  const [proxiesOpen, setProxiesOpen] = useState(false)
-  const [groupsOpen, setGroupsOpen] = useState(false)
-  const [mergeOpen, setMergeOpen] = useState(false)
-  const [scriptOpen, setScriptOpen] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
-  const [qrOpen, setQrOpen] = useState(false)
-
-  const loadProfileDocument = useCallback(() => readProfileFile(uid), [uid])
-  const loadMergeDocument = useCallback(
-    () => readProfileFile(option?.merge ?? ''),
-    [option?.merge],
-  )
-  const loadScriptDocument = useCallback(
-    () => readProfileFile(option?.script ?? ''),
-    [option?.script],
-  )
-
-  const profileDocument = useEditorDocument({
-    open: fileOpen,
-    load: loadProfileDocument,
-  })
-  const mergeDocument = useEditorDocument({
-    open: mergeOpen,
-    load: loadMergeDocument,
-  })
-  const scriptDocument = useEditorDocument({
-    open: scriptOpen,
-    load: loadScriptDocument,
-  })
 
   const onOpenHome = () => {
     setAnchorEl(null)
@@ -338,54 +294,10 @@ const ProfileItemBase = (props: ProfileItemProps) => {
     onEdit()
   }
 
-  const onShareQrCode = () => {
-    setAnchorEl(null)
-    setQrOpen(true)
-  }
-
-  const onEditFile = () => {
-    setAnchorEl(null)
-    setFileOpen(true)
-  }
-
-  const onEditRules = () => {
-    setAnchorEl(null)
-    setRulesOpen(true)
-  }
-
-  const onEditProxies = () => {
-    setAnchorEl(null)
-    setProxiesOpen(true)
-  }
-
-  const onEditGroups = () => {
-    setAnchorEl(null)
-    setGroupsOpen(true)
-  }
-
-  const onEditMerge = () => {
-    setAnchorEl(null)
-    setMergeOpen(true)
-  }
-
-  const onEditScript = () => {
-    setAnchorEl(null)
-    setScriptOpen(true)
-  }
-
   const onForceSelect = () => {
     setAnchorEl(null)
     onSelect(true)
   }
-
-  const onOpenFile = useLockFn(async () => {
-    setAnchorEl(null)
-    try {
-      await viewProfile(itemData.uid)
-    } catch (err) {
-      showNotice.error(err)
-    }
-  })
 
   /// 0 不使用任何代理
   /// 1 使用订阅好的代理
@@ -433,15 +345,7 @@ const ProfileItemBase = (props: ProfileItemProps) => {
   const menuLabels: Record<string, TranslationKey> = {
     home: 'profiles.components.menu.home',
     select: 'profiles.components.menu.select',
-    shareQrCode: 'profiles.components.menu.shareQrCode',
     editInfo: 'profiles.components.menu.editInfo',
-    editFile: 'profiles.components.menu.editFile',
-    editRules: 'profiles.components.menu.editRules',
-    editProxies: 'profiles.components.menu.editProxies',
-    editGroups: 'profiles.components.menu.editGroups',
-    extendConfig: 'profiles.components.menu.extendConfig',
-    extendScript: 'profiles.components.menu.extendScript',
-    openFile: 'profiles.components.menu.openFile',
     update: 'profiles.components.menu.update',
     updateViaProxy: 'profiles.components.menu.updateViaProxy',
     delete: 'shared.actions.delete',
@@ -463,48 +367,8 @@ const ProfileItemBase = (props: ProfileItemProps) => {
       disabled: false,
     },
     {
-      label: menuLabels.shareQrCode,
-      handler: onShareQrCode,
-      disabled: false,
-    },
-    {
       label: menuLabels.editInfo,
       handler: onEditInfo,
-      disabled: false,
-    },
-    {
-      label: menuLabels.editFile,
-      handler: onEditFile,
-      disabled: false,
-    },
-    {
-      label: menuLabels.editRules,
-      handler: onEditRules,
-      disabled: !option?.rules,
-    },
-    {
-      label: menuLabels.editProxies,
-      handler: onEditProxies,
-      disabled: !option?.proxies,
-    },
-    {
-      label: menuLabels.editGroups,
-      handler: onEditGroups,
-      disabled: !option?.groups,
-    },
-    {
-      label: menuLabels.extendConfig,
-      handler: onEditMerge,
-      disabled: !option?.merge,
-    },
-    {
-      label: menuLabels.extendScript,
-      handler: onEditScript,
-      disabled: !option?.script,
-    },
-    {
-      label: menuLabels.openFile,
-      handler: onOpenFile,
       disabled: false,
     },
     {
@@ -545,41 +409,6 @@ const ProfileItemBase = (props: ProfileItemProps) => {
       disabled: false,
     },
     {
-      label: menuLabels.editFile,
-      handler: onEditFile,
-      disabled: false,
-    },
-    {
-      label: menuLabels.editRules,
-      handler: onEditRules,
-      disabled: !option?.rules,
-    },
-    {
-      label: menuLabels.editProxies,
-      handler: onEditProxies,
-      disabled: !option?.proxies,
-    },
-    {
-      label: menuLabels.editGroups,
-      handler: onEditGroups,
-      disabled: !option?.groups,
-    },
-    {
-      label: menuLabels.extendConfig,
-      handler: onEditMerge,
-      disabled: !option?.merge,
-    },
-    {
-      label: menuLabels.extendScript,
-      handler: onEditScript,
-      disabled: !option?.script,
-    },
-    {
-      label: menuLabels.openFile,
-      handler: onOpenFile,
-      disabled: false,
-    },
-    {
       label: menuLabels.delete,
       handler: () => {
         setAnchorEl(null)
@@ -602,38 +431,6 @@ const ProfileItemBase = (props: ProfileItemProps) => {
     alignItems: 'center',
     justifyContent: 'space-between',
   }
-
-  const handleSaveProfileDocument = useLockFn(async () => {
-    const currentValue = profileDocument.value
-    if (!(await saveProfileFile(uid, currentValue))) {
-      await profileDocument.reload()
-      return
-    }
-    onSave?.(profileDocument.savedValue, currentValue)
-    profileDocument.markSaved(currentValue)
-  })
-
-  const handleSaveMergeDocument = useLockFn(async () => {
-    const mergeUid = option?.merge ?? ''
-    const currentValue = mergeDocument.value
-    if (!(await saveProfileFile(mergeUid, currentValue))) {
-      await mergeDocument.reload()
-      return
-    }
-    onSave?.(mergeDocument.savedValue, currentValue)
-    mergeDocument.markSaved(currentValue)
-  })
-
-  const handleSaveScriptDocument = useLockFn(async () => {
-    const scriptUid = option?.script ?? ''
-    const currentValue = scriptDocument.value
-    if (!(await saveProfileFile(scriptUid, currentValue))) {
-      await scriptDocument.reload()
-      return
-    }
-    onSave?.(scriptDocument.savedValue, currentValue)
-    scriptDocument.markSaved(currentValue)
-  })
 
   return (
     <Box sx={{ position: 'relative' }}>
@@ -885,78 +682,6 @@ const ProfileItemBase = (props: ProfileItemProps) => {
           </MenuItem>
         ))}
       </Menu>
-      {fileOpen && (
-        <EditorViewer
-          open={true}
-          value={profileDocument.value}
-          language="yaml"
-          path={`profile:${uid}.yaml`}
-          loading={profileDocument.loading}
-          dirty={profileDocument.dirty}
-          onChange={profileDocument.setValue}
-          onSave={handleSaveProfileDocument}
-          onClose={() => setFileOpen(false)}
-        />
-      )}
-      {rulesOpen && (
-        <RulesEditorViewer
-          groupsUid={option?.groups ?? ''}
-          mergeUid={option?.merge ?? ''}
-          profileUid={uid}
-          property={option?.rules ?? ''}
-          open={true}
-          onSave={onSave}
-          onClose={() => setRulesOpen(false)}
-        />
-      )}
-      {proxiesOpen && (
-        <ProxiesEditorViewer
-          profileUid={uid}
-          property={option?.proxies ?? ''}
-          open={true}
-          onSave={onSave}
-          onClose={() => setProxiesOpen(false)}
-        />
-      )}
-      {groupsOpen && (
-        <GroupsEditorViewer
-          mergeUid={option?.merge ?? ''}
-          proxiesUid={option?.proxies ?? ''}
-          profileUid={uid}
-          property={option?.groups ?? ''}
-          open={true}
-          onSave={onSave}
-          onClose={() => {
-            setGroupsOpen(false)
-          }}
-        />
-      )}
-      {mergeOpen && (
-        <EditorViewer
-          open={true}
-          value={mergeDocument.value}
-          language="yaml"
-          path={`merge:${option?.merge ?? ''}.yaml`}
-          loading={mergeDocument.loading}
-          dirty={mergeDocument.dirty}
-          onChange={mergeDocument.setValue}
-          onSave={handleSaveMergeDocument}
-          onClose={() => setMergeOpen(false)}
-        />
-      )}
-      {scriptOpen && (
-        <EditorViewer
-          open={true}
-          value={scriptDocument.value}
-          language="javascript"
-          path={`script:${option?.script ?? ''}.js`}
-          loading={scriptDocument.loading}
-          dirty={scriptDocument.dirty}
-          onChange={scriptDocument.setValue}
-          onSave={handleSaveScriptDocument}
-          onClose={() => setScriptOpen(false)}
-        />
-      )}
 
       <BaseDialog
         title={t('profiles.modals.confirmDelete.title')}
@@ -975,13 +700,6 @@ const ProfileItemBase = (props: ProfileItemProps) => {
           {t('profiles.modals.confirmDelete.message')}
         </Typography>
       </BaseDialog>
-      {qrOpen && itemData.url && (
-        <QrViewer
-          open={true}
-          value={`${itemData.url}${itemData.url.includes('?') ? '&' : '?'}name=${encodeURIComponent(name)}`}
-          onClose={() => setQrOpen(false)}
-        />
-      )}
     </Box>
   )
 }

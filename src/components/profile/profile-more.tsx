@@ -23,6 +23,7 @@ import { ProfileBox } from './profile-box'
 interface Props {
   logInfo?: [string, string][]
   id: 'Merge' | 'Script'
+  disabled?: boolean
   onSave?: (prev?: string, curr?: string) => void
 }
 
@@ -39,7 +40,7 @@ function main(config, profileName) {
 
 // profile enhanced item
 export const ProfileMore = (props: Props) => {
-  const { id, logInfo, onSave } = props
+  const { id, logInfo, onSave, disabled = false } = props
 
   const entries = logInfo ?? EMPTY_LOG_INFO
   const { t } = useTranslation()
@@ -110,13 +111,18 @@ export const ProfileMore = (props: Props) => {
   return (
     <>
       <ProfileBox
-        onDoubleClick={onEditFile}
-        onContextMenu={(event) => {
-          const { clientX, clientY } = event
-          setPosition({ top: clientY, left: clientX })
-          setAnchorEl(event.currentTarget as HTMLElement)
-          event.preventDefault()
-        }}
+        aria-disabled={disabled || undefined}
+        onDoubleClick={disabled ? undefined : onEditFile}
+        onContextMenu={
+          disabled
+            ? undefined
+            : (event) => {
+                const { clientX, clientY } = event
+                setPosition({ top: clientY, left: clientX })
+                setAnchorEl(event.currentTarget as HTMLElement)
+                event.preventDefault()
+              }
+        }
       >
         <Box
           sx={{

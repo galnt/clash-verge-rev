@@ -815,6 +815,7 @@ const ProfilePage = () => {
               <IconButton
                 size="small"
                 color="inherit"
+                disabled
                 title={t('profiles.page.actions.viewRuntimeConfig')}
                 onClick={() => configRef.current?.open()}
               >
@@ -1008,13 +1009,6 @@ const ProfilePage = () => {
                       mutateProfiles={mutateProfiles}
                       onSelect={(f) => onSelect(item.uid, f)}
                       onEdit={() => viewerRef.current?.edit(item)}
-                      onSave={async (prev, curr) => {
-                        if (prev !== curr && profiles.current === item.uid) {
-                          await onEnhance(false)
-                          //  await restartCore();
-                          //   Notice.success(t("settings.feedback.notifications.clash.restartSuccess"), 1000);
-                        }
-                      }}
                       onDelete={() => {
                         if (batchMode) {
                           toggleProfileSelection(item.uid)
@@ -1041,6 +1035,7 @@ const ProfilePage = () => {
               <Grid size={{ xs: 12, sm: 6, md: 6, lg: 6 }}>
                 <ProfileMore
                   id="Merge"
+                  disabled
                   onSave={async (prev, curr) => {
                     if (prev !== curr) {
                       await onEnhance(false)
@@ -1052,6 +1047,7 @@ const ProfilePage = () => {
                 <ProfileMore
                   id="Script"
                   logInfo={chainLogs['Script']}
+                  disabled
                   onSave={async (prev, curr) => {
                     if (prev !== curr) {
                       await onEnhance(false)

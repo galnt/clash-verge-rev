@@ -191,6 +191,7 @@ const ConnectionsPage = () => {
           <IconButton
             color="inherit"
             size="small"
+            disabled
             onClick={() =>
               setSetting((o) =>
                 o?.layout !== 'table'

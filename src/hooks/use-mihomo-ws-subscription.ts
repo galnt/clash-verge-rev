@@ -225,7 +225,10 @@ export const useMihomoWsSubscription = <T>(
       getCacheData<T>([responseCacheKey ?? '$sub$__disabled__']) ??
       fallbackData,
     staleTime: Infinity,
-    enabled: subscriptionCacheKey !== null,
+    // Keep the query attached to the last subscription cache key even while the
+    // subscription is suspended (e.g. logs paused), otherwise the SWR key
+    // becomes null and cache mutations (clear logs) no longer notify this hook.
+    enabled: responseCacheKey !== null,
   })
 
   useEffect(() => {

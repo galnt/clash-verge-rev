@@ -1,7 +1,7 @@
 import { alpha, Box, styled } from '@mui/material'
 
 export const ProfileBox = styled(Box)(
-  ({ theme, 'aria-selected': selected }) => {
+  ({ theme, 'aria-selected': selected, 'aria-disabled': disabled }) => {
     const { mode, primary, text } = theme.palette
     const key = `${mode}-${!!selected}`
 
@@ -52,6 +52,10 @@ export const ProfileBox = styled(Box)(
       borderRadius: '8px',
       color,
       '& h2': { color: h2color },
+      ...(disabled && {
+        opacity: 0.5,
+        cursor: 'default',
+      }),
     }
   },
 )
