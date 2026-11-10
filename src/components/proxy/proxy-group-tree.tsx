@@ -144,6 +144,7 @@ const GroupDot = ({
   selected,
   active,
   nodeWidth,
+  now,
   onClick,
 }: {
   node: LayoutNode
@@ -151,6 +152,8 @@ const GroupDot = ({
   selected: boolean
   active: boolean
   nodeWidth: number
+  /** 运行时该组当前生效的节点，和代理页组标签的 group.now 一致 */
+  now?: string
   onClick: (node: LayoutNode) => void
 }) => {
   const theme = useTheme()
@@ -163,7 +166,7 @@ const GroupDot = ({
 
   return (
     <Tooltip
-      title={`${node.name}${node.groupType ? ` · ${node.groupType}` : ''} · ${node.memberCount}${active ? ` · ${t('proxies.page.tree.current')}` : ''}`}
+      title={`${node.name}${node.groupType ? ` · ${node.groupType}` : ''} · ${now || '—'} · ${node.memberCount}${active ? ` · ${t('proxies.page.tree.current')}` : ''}`}
       arrow
     >
       <ButtonBase
@@ -215,14 +218,21 @@ const GroupDot = ({
             {node.expanded ? '▼' : '▶'}
           </Box>
         )}
-
-        <Typography
+        <Box
           component="span"
-          sx={{ fontSize: 14, fontWeight: 800, lineHeight: 1.1 }}
+          sx={{
+            position: 'absolute',
+            top: 3,
+            left: 6,
+            fontSize: 9,
+            lineHeight: 1,
+            opacity: 0.7,
+          }}
         >
-          {isRoot ? '★' : node.proxyCount}
-        </Typography>
+          {node.memberCount}
+        </Box>
 
+        {/* 上：组名称 */}
         <Typography
           component="span"
           noWrap
@@ -230,12 +240,58 @@ const GroupDot = ({
             width: '100%',
             textAlign: 'center',
             fontSize: 13,
-            lineHeight: 1.15,
-            fontWeight: selected ? 700 : 500,
+            lineHeight: 1.2,
+            fontWeight: 700,
           }}
         >
-          {node.name}
+          {isRoot ? `★ ${node.name}` : node.name}
         </Typography>
+
+        {/* 下：类型徽章 + 当前生效节点，参考代理页组标签 */}
+        <Box
+          component="span"
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 0.5,
+            width: '100%',
+            minWidth: 0,
+          }}
+        >
+          {node.groupType && (
+            <Box
+              component="span"
+              sx={{
+                flexShrink: 0,
+                px: '3px',
+                fontSize: 9,
+                lineHeight: 1.5,
+                borderRadius: '3px',
+                border: `1px solid ${alpha(color, selected ? 0.8 : 0.45)}`,
+                color: selected ? '#fff' : alpha(color, 0.9),
+              }}
+            >
+              {node.groupType}
+            </Box>
+          )}
+          <Typography
+            component="span"
+            noWrap
+            title={now}
+            sx={{
+              minWidth: 0,
+              fontSize: 11,
+              lineHeight: 1.3,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              color: selected ? 'rgba(255,255,255,0.9)' : 'text.secondary',
+            }}
+          >
+            {now || '—'}
+          </Typography>
+        </Box>
       </ButtonBase>
     </Tooltip>
   )
@@ -586,6 +642,12 @@ export const ProxyGroupTree = () => {
     [activeChain.keys],
   )
 
+  // 组节点下方展示的「当前节点」：优先运行时 now，刚切换还没刷新时用共享选择兜底
+  const nowOf = (name: string) =>
+    runtimeGroups.get(name)?.now ||
+    (sharedSelection.group === name ? sharedSelection.proxy : '') ||
+    ''
+
   // 树内的"选中"完全由共享状态/运行时生效链派生，任意视图改动都会同步
   const selection = useMemo<Selection | null>(() => {
     const { group, proxy } = sharedSelection
@@ -881,10 +943,10 @@ export const ProxyGroupTree = () => {
             : event.deltaY
 
       setTransform((prev) => {
-        // 内容不足一屏时不滚动；超过一屏时按内容高度限制范围
-        const contentH = layout.bottom + 140
-        const minY = Math.min(0, el.clientHeight - contentH)
-        const maxY = contentH > el.clientHeight ? SCROLL_SLACK : 0
+        // 与左侧 SVG 画布实际高度保持一致，初始即使节点少也能滚动
+        const contentH = Math.max(layout.bottom + 240, 900)
+        const minY = Math.min(-SCROLL_SLACK, el.clientHeight - contentH)
+        const maxY = SCROLL_SLACK
         return {
           ...prev,
           y: Math.min(maxY, Math.max(minY, prev.y - delta)),
@@ -894,7 +956,8 @@ export const ProxyGroupTree = () => {
 
     el.addEventListener('wheel', onWheel, { passive: false })
     return () => el.removeEventListener('wheel', onWheel)
-  }, [layout.bottom])
+    // 树数据是异步加载的，左右栏 DOM 就绪后必须重新绑定
+  }, [layout.bottom, hasTree, error])
 
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return
@@ -1233,6 +1296,7 @@ export const ProxyGroupTree = () => {
                   selected={false}
                   active={activeChain.names.length > 0}
                   nodeWidth={nodeW}
+                  now={nowOf(rootName)}
                   onClick={onNodeClick}
                 />
                 {layout.nodes.map((node) =>
@@ -1262,6 +1326,7 @@ export const ProxyGroupTree = () => {
                       }
                       active={activeKeys.has(node.key)}
                       nodeWidth={nodeW}
+                      now={nowOf(node.name)}
                       onClick={onNodeClick}
                     />
                   ),
@@ -1480,7 +1545,7 @@ export const ProxyGroupTree = () => {
                         <Box
                           sx={{
                             display: 'grid',
-                            // 与左侧节点块同宽、同列数、同间距；卡片下方多一行静态波形
+                            // 与左侧节点块同宽同高、同列数、同间距
                             gridTemplateColumns: `repeat(${columns}, ${nodeW}px)`,
                             gap: 1,
                           }}

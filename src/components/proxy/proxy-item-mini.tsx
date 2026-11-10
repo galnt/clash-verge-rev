@@ -16,7 +16,7 @@ interface Props {
   showType?: boolean
   /** 选中态主色，供分组树按节点名称配色使用 */
   accentColor?: string
-  /** 在延时值、速度值这两个值的下方静态展示波形 */
+  /** 未测速时用静态波形作为速度位的展示值，测速后替换为结果 */
   showPulseWaveform?: boolean
   onClick?: (name: string) => void
 }
@@ -52,7 +52,7 @@ export const ProxyItemMini = (props: Props) => {
       onClick={() => onClick?.(proxy.name)}
       sx={[
         {
-          height: showPulseWaveform ? 88 : 64,
+          height: 64,
           borderRadius: 1.5,
           pl: 1.5,
           pr: 1,
@@ -250,25 +250,20 @@ export const ProxyItemMini = (props: Props) => {
             }}
           >
             {speedValue === -1 ? (
-              <SpeedRounded sx={{ fontSize: 14, display: 'block' }} />
+              showPulseWaveform ? (
+                <Box
+                  component="span"
+                  sx={{ display: 'flex', '& svg': { width: 48, height: 20 } }}
+                >
+                  <NodePulse />
+                </Box>
+              ) : (
+                <SpeedRounded sx={{ fontSize: 14, display: 'block' }} />
+              )
             ) : (
               speedManager.formatSpeed(speedValue, proxy.name)
             )}
           </SpeedWidget>
-        )}
-        {showPulseWaveform && (
-          <Box
-            component="span"
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'flex-end',
-              mt: '2px',
-              '& svg': { width: 64, height: 24 },
-            }}
-          >
-            <NodePulse />
-          </Box>
         )}
       </Box>
       {group.fixed && group.fixed === proxy.name && (

@@ -203,9 +203,9 @@
       display: flex;
       align-items: center;
       justify-content: flex-end;
-      padding: 10px;
+      padding: 0 12px;
       box-sizing: border-box;
-      height: 36px;
+      height: 48px;
       border-bottom: 1px solid var(--divider-color);
 
       &-drag-region {
@@ -237,9 +237,9 @@
       display: flex;
       align-items: center;
       justify-content: flex-end;
-      padding: 10px;
+      padding: 0 12px;
       box-sizing: border-box;
-      height: 36px;
+      height: 48px;
       border-bottom: 1px solid var(--divider-color);
 
       &-drag-region {
@@ -368,19 +368,22 @@
   display: flex;
   flex: 0 0 auto;
   align-items: center;
-  gap: 18px;
-  padding-left: 6px;
+  gap: 14px;
+  padding-left: 4px;
   white-space: nowrap;
   app-region: no-drag;
 
   &-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     border: 0;
     padding: 0;
     background: transparent;
     font: inherit;
-    font-size: 13px;
-    font-weight: 500;
-    line-height: 16px;
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 24px;
     color: #ff3b5c;
     opacity: 0.75;
     cursor: pointer;
@@ -394,6 +397,21 @@
       font-weight: 700;
       text-decoration: underline;
       text-underline-offset: 4px;
+    }
+  }
+
+  &-icon {
+    display: inline-flex;
+    width: 24px;
+    height: 24px;
+    flex: 0 0 24px;
+    align-items: center;
+    justify-content: center;
+
+    svg {
+      display: block;
+      width: 100%;
+      height: 100%;
     }
   }
 }

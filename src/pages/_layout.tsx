@@ -77,7 +77,11 @@ const titleBarNavItems = [
   navigationItems.connections,
   navigationItems.logs,
   navigationItems.settings,
-]
+].map((item) => ({
+  ...item,
+  // 复用左侧导航里的彩色 SVG 图标
+  icon: navItems.find((nav) => nav.path === item.path)?.icon[1] ?? null,
+}))
 
 type NavItem = (typeof navItems)[number]
 
@@ -97,7 +101,8 @@ const TitleBarNav = () => {
           className={`the_titlebar-nav-item${pathname === item.path ? ' is-active' : ''}`}
           onClick={() => navigate(item.path)}
         >
-          {t(item.label).replace(/\s/g, '')}
+          <span className="the_titlebar-nav-icon">{item.icon}</span>
+          <span>{t(item.label).replace(/\s/g, '')}</span>
         </button>
       ))}
     </nav>
