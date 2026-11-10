@@ -25,6 +25,12 @@ export interface LayoutNode {
   groupType: string
   memberCount: number
   proxyCount: number
+  /** group = 代理组，proxy = 原组关系里的实体节点 */
+  kind: 'group' | 'proxy'
+  /** 直接包含它的组名 */
+  parentName: string
+  /** 从根组到 parentName 的完整组名链（含根与父组） */
+  parentChain: string[]
 }
 
 export interface LayoutLink {
@@ -63,6 +69,9 @@ interface PendingNode {
   name: string
   key: string
   pathKeys: string[]
+  kind: 'group' | 'proxy'
+  parentName: string
+  parentChain: string[]
 }
 
 interface BuildParams {
@@ -123,11 +132,16 @@ export function buildTreeLayout({
     groupType: 'MATCH',
     memberCount: childGroups.length,
     proxyCount: 0,
+    kind: 'group',
+    parentName: rootName,
+    parentChain: [rootName],
   }
 
   const nodes: LayoutNode[] = []
   const links: LayoutLink[] = []
   const nodeByKey = new Map<string, LayoutNode>([['root', root]])
+  const namesOfKeys = (keys: string[]) =>
+    keys.map((key) => nodeByKey.get(key)?.name ?? '').filter(Boolean)
 
   const placeLevel = (
     pending: PendingNode[],
@@ -173,6 +187,9 @@ export function buildTreeLayout({
         proxyCount: members.filter(
           (name) => !isGroup(name) && !POLICY_NAMES.has(name),
         ).length,
+        kind: item.kind,
+        parentName: item.parentName,
+        parentChain: item.parentChain,
       }
 
       nodes.push(node)
@@ -200,7 +217,14 @@ export function buildTreeLayout({
   // 第一层只放根组 proxies 里引用的子组，不再平铺 proxy-groups 的全部组
   let pending: PendingNode[] = childGroups.map((name) => {
     const key = topPath(name)
-    return { name, key, pathKeys: [key] }
+    return {
+      name,
+      key,
+      pathKeys: [key],
+      kind: 'group',
+      parentName: rootName,
+      parentChain: [rootName],
+    }
   })
   let parent: LayoutNode = root
   let depth = 1
@@ -221,11 +245,25 @@ export function buildTreeLayout({
     const expanded = nextKey ? nodeByKey.get(nextKey) : undefined
     if (!expanded) break
 
+    // 展开组时，把「原组关系」里的子组和直属实体节点一起铺在这一层
+    const parentChain = [rootName, ...namesOfKeys(expanded.pathKeys)]
     pending = membersOf(expanded.name)
-      .filter(isGroup)
+      .filter((name) => !POLICY_NAMES.has(name))
       .map((name) => {
-        const key = childPath(expanded.key, name)
-        return { name, key, pathKeys: [...expanded.pathKeys, key] }
+        const childIsGroup = isGroup(name)
+        const key = childIsGroup
+          ? childPath(expanded.key, name)
+          : `${expanded.key}/p/${encodeURIComponent(name)}`
+        return {
+          name,
+          key,
+          pathKeys: childIsGroup
+            ? [...expanded.pathKeys, key]
+            : expanded.pathKeys,
+          kind: childIsGroup ? ('group' as const) : ('proxy' as const),
+          parentName: expanded.name,
+          parentChain,
+        }
       })
     parent = expanded
     depth += 1

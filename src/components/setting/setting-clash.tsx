@@ -285,6 +285,7 @@ const SettingClash = ({ onError }: Props) => {
       />
 
       <SettingItem
+        disabled
         label={t('settings.sections.clash.form.fields.tunnels.title')}
         onClick={() => tunnelRef.current?.open()}
       />

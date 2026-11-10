@@ -371,6 +371,11 @@ impl IVerge {
                     {
                         config.start_page = Some(String::from("/"));
                     }
+                    // 界面锁定项：无论配置文件里存过什么值，都按固定值生效
+                    config.start_page = Some("/proxies".into());
+                    config.traffic_graph = Some(false);
+                    config.enable_memory_usage = Some(false);
+                    config.tray_proxy_groups_display_mode = Some("disable".into());
                     config
                 }
                 Err(err) => {
@@ -397,8 +402,8 @@ impl IVerge {
             #[cfg(target_os = "windows")]
             env_type: Some("powershell".into()),
             start_page: Some("/proxies".into()),
-            traffic_graph: Some(true),
-            enable_memory_usage: Some(true),
+            traffic_graph: Some(false),
+            enable_memory_usage: Some(false),
             enable_group_icon: Some(true),
             pause_render_traffic_stats_on_blur: Some(true),
             #[cfg(target_os = "macos")]
@@ -449,7 +454,7 @@ impl IVerge {
             #[cfg(target_os = "macos")]
             enable_tray_speed: Some(false),
             // enable_tray_icon: Some(true),
-            tray_proxy_groups_display_mode: Some("default".into()),
+            tray_proxy_groups_display_mode: Some("disable".into()),
             tray_inline_outbound_modes: Some(false),
             enable_global_hotkey: Some(true),
             enable_auto_light_weight_mode: Some(false),

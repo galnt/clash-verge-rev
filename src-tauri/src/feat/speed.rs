@@ -11,7 +11,7 @@ use serde_yaml_ng::{Mapping, Value as YamlValue};
 
 use crate::{config::Config, utils::dirs};
 
-pub const DEFAULT_TEST_URL: &str = "https://speed.cloudflare.com/__down?bytes=50000000";
+pub const DEFAULT_TEST_URL: &str = "http://cachefly.cachefly.net/5mb.test";
 pub const CANCEL_FILE: &str = "speed-test-cancel.flag";
 const RESULT_FILE: &str = "speed-test-results.json";
 

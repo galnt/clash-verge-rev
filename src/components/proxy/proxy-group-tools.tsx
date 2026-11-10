@@ -62,8 +62,7 @@ export const ProxyGroupTools = memo(function ProxyGroupTools(props: Props) {
 
   const { verge } = useVerge()
   const defaultLatencyUrl =
-    verge?.default_latency_test?.trim() ||
-    'http://cp.cloudflare.com/generate_204'
+    verge?.default_latency_test?.trim() || 'http://www.google.com/generate_204'
 
   useEffect(() => {
     delayManager.setUrl(groupName, testUrl?.trim() || url || defaultLatencyUrl)

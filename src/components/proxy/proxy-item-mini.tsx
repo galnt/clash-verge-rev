@@ -2,6 +2,7 @@ import { CheckCircleOutlineRounded, SpeedRounded } from '@mui/icons-material'
 import { alpha, Box, ListItemButton, styled, Typography } from '@mui/material'
 import { useTranslation } from 'react-i18next'
 
+import NodePulse from '@/assets/image/node-pulse.svg?react'
 import { BaseLoading } from '@/components/base'
 import { useProxyDelayState } from '@/hooks/use-proxy-delay-state'
 import { useProxySpeedState } from '@/hooks/use-proxy-speed-state'
@@ -15,6 +16,8 @@ interface Props {
   showType?: boolean
   /** 选中态主色，供分组树按节点名称配色使用 */
   accentColor?: string
+  /** 在延时值、速度值这两个值的下方静态展示波形 */
+  showPulseWaveform?: boolean
   onClick?: (name: string) => void
 }
 
@@ -26,6 +29,7 @@ export const ProxyItemMini = (props: Props) => {
     selected,
     showType = true,
     accentColor,
+    showPulseWaveform = false,
     onClick,
   } = props
 
@@ -48,7 +52,7 @@ export const ProxyItemMini = (props: Props) => {
       onClick={() => onClick?.(proxy.name)}
       sx={[
         {
-          height: 64,
+          height: showPulseWaveform ? 88 : 64,
           borderRadius: 1.5,
           pl: 1.5,
           pr: 1,
@@ -251,6 +255,20 @@ export const ProxyItemMini = (props: Props) => {
               speedManager.formatSpeed(speedValue, proxy.name)
             )}
           </SpeedWidget>
+        )}
+        {showPulseWaveform && (
+          <Box
+            component="span"
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+              mt: '2px',
+              '& svg': { width: 64, height: 24 },
+            }}
+          >
+            <NodePulse />
+          </Box>
         )}
       </Box>
       {group.fixed && group.fixed === proxy.name && (

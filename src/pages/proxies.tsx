@@ -46,8 +46,8 @@ const ProxyPage = () => {
     }
   })
 
-  // 每次进入「代理」标签都默认展示分组树
-  const [isTreeMode, setIsTreeMode] = useState(true)
+  // 目录树归入「规则」视图：默认跟随当前模式，单独点击目录树按钮时覆盖
+  const [treeModeOverride, setTreeModeOverride] = useState<boolean | null>(null)
 
   const [chainConfigData, dispatchChainConfigData] = useReducer(
     (_: string | null, action: string | null) => action,
@@ -64,7 +64,24 @@ const ProxyPage = () => {
 
   const normalizedMode = clashConfig?.mode?.toLowerCase()
   const curMode = isMode(normalizedMode) ? normalizedMode : undefined
+  const isTreeMode =
+    treeModeOverride ?? ((curMode ?? 'rule') === 'rule' && !isChainMode)
   const chainWarning = t('proxies.page.chain.warning')
+
+  const exitChainMode = useLockFn(async () => {
+    setIsChainMode(false)
+    // 保存链式代理按钮状态到 localStorage
+    localStorage.setItem('proxy-chain-mode-enabled', 'false')
+
+    // 退出链式代理模式时，清除链式代理配置
+    try {
+      debugLog('Exiting chain mode, clearing chain configuration')
+      await updateProxyChainConfigInRuntime(null)
+      debugLog('Chain configuration cleared successfully')
+    } catch (error) {
+      console.error('Failed to clear chain configuration:', error)
+    }
+  })
 
   const onChangeMode = useLockFn(async (mode: Mode) => {
     // 断开连接
@@ -75,32 +92,27 @@ const ProxyPage = () => {
       // patchClashMode 在后端 PATCH 失败时会 reject，需提示用户而非静默失败
       await patchClashMode(mode)
       refreshClashConfig()
+
+      // 目录树归入「规则」：切模式后清除手动覆盖，重新由模式决定
+      if (mode === 'rule' && isChainMode) await exitChainMode()
+      setTreeModeOverride(null)
     } catch (error) {
       showNotice.error(error)
     }
   })
 
   const onToggleChainMode = useLockFn(async () => {
-    const newChainMode = !isChainMode
-
-    setIsChainMode(newChainMode)
-    // 保存链式代理按钮状态到 localStorage
-    localStorage.setItem('proxy-chain-mode-enabled', newChainMode.toString())
-
-    if (!newChainMode) {
-      // 退出链式代理模式时，清除链式代理配置
-      try {
-        debugLog('Exiting chain mode, clearing chain configuration')
-        await updateProxyChainConfigInRuntime(null)
-        debugLog('Chain configuration cleared successfully')
-      } catch (error) {
-        console.error('Failed to clear chain configuration:', error)
-      }
+    if (isChainMode) {
+      await exitChainMode()
+      return
     }
+
+    setIsChainMode(true)
+    localStorage.setItem('proxy-chain-mode-enabled', 'true')
   })
 
   const setTreeMode = (value: boolean) => {
-    setIsTreeMode(value)
+    setTreeModeOverride(value)
   }
 
   const onToggleTreeMode = () => {
@@ -111,11 +123,8 @@ const ProxyPage = () => {
   }
 
   const onEnableChainMode = () => {
-    if (isTreeMode) {
-      setTreeMode(false)
-      if (!isChainMode) void onToggleChainMode()
-      return
-    }
+    // 拉链与目录树互斥；退出拉链后回到由模式决定的视图
+    setTreeModeOverride(null)
     void onToggleChainMode()
   }
 
@@ -211,6 +220,7 @@ const ProxyPage = () => {
             size="small"
             variant={isChainMode ? 'contained' : 'outlined'}
             onClick={onEnableChainMode}
+            title={t('proxies.page.title.chainMode')}
             sx={{ ml: 1 }}
             startIcon={
               isChainMode ? (

@@ -40,6 +40,7 @@ const SettingPage = () => {
       header={
         <ButtonGroup variant="contained" aria-label="Basic button group">
           <IconButton
+            disabled
             size="medium"
             color="inherit"
             title={t('settings.page.actions.manual')}
@@ -48,6 +49,7 @@ const SettingPage = () => {
             <HelpOutlineRounded fontSize="inherit" />
           </IconButton>
           <IconButton
+            disabled
             size="medium"
             color="inherit"
             title={t('settings.page.actions.telegram')}
@@ -57,6 +59,7 @@ const SettingPage = () => {
           </IconButton>
 
           <IconButton
+            disabled
             size="medium"
             color="inherit"
             title={t('settings.page.actions.github')}

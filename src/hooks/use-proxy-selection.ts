@@ -44,7 +44,8 @@ interface ProxyChangeRequest {
 export const useProxySelection = (options: ProxySelectionOptions = {}) => {
   const { current, patchCurrent } = useProfiles()
   const { verge } = useVerge()
-  const pendingRequestRef = useRef<ProxyChangeRequest | null>(null)
+  // 队列而非单槽：一次点击可能需要沿组链逐级切换，不能被后一次调用覆盖
+  const pendingRequestsRef = useRef<ProxyChangeRequest[]>([])
   const isProcessingRef = useRef(false)
 
   const { onSuccess, onError, enableConnectionCleanup = true } = options
@@ -122,14 +123,14 @@ export const useProxySelection = (options: ProxySelectionOptions = {}) => {
     isProcessingRef.current = true
 
     try {
-      while (pendingRequestRef.current) {
-        const request = pendingRequestRef.current
-        pendingRequestRef.current = null
+      while (pendingRequestsRef.current.length) {
+        const request = pendingRequestsRef.current.shift()
+        if (!request) break
         await executeChange(request)
       }
     } finally {
       isProcessingRef.current = false
-      if (pendingRequestRef.current) {
+      if (pendingRequestsRef.current.length) {
         void flushChangeQueue()
       }
     }
@@ -142,12 +143,12 @@ export const useProxySelection = (options: ProxySelectionOptions = {}) => {
       previousProxy?: string,
       skipConfigSave: boolean = false,
     ) => {
-      pendingRequestRef.current = {
+      pendingRequestsRef.current.push({
         groupName,
         proxyName,
         previousProxy,
         skipConfigSave,
-      }
+      })
       void flushChangeQueue()
     },
     [flushChangeQueue],

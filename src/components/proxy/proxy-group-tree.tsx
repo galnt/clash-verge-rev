@@ -35,6 +35,7 @@ import {
 import { useTranslation } from 'react-i18next'
 import { delayGroup } from 'tauri-plugin-mihomo-api'
 
+import NodePulse from '@/assets/image/node-pulse.svg?react'
 import { formatConnectionTraffic } from '@/components/connection/connection-row-view'
 import { useConnectionData } from '@/hooks/use-connection-data'
 import { useProxySelection } from '@/hooks/use-proxy-selection'
@@ -240,6 +241,78 @@ const GroupDot = ({
   )
 }
 
+/** 左栏里原组关系下的实体节点：虚线框，点击即切换代理 */
+const ProxyDot = ({
+  node,
+  selected,
+  active,
+  nodeWidth,
+  onClick,
+}: {
+  node: LayoutNode
+  selected: boolean
+  active: boolean
+  nodeWidth: number
+  onClick: (node: LayoutNode) => void
+}) => {
+  const theme = useTheme()
+  const color = resolveProxyColor(theme, node.name)
+
+  return (
+    <Tooltip title={`${node.parentName} → ${node.name}`} arrow>
+      <ButtonBase
+        onClick={() => onClick(node)}
+        onPointerDown={(event) => event.stopPropagation()}
+        sx={{
+          position: 'absolute',
+          left: node.x,
+          top: node.y,
+          transform: 'translate(-50%, -50%)',
+          zIndex: 2,
+          width: nodeWidth,
+          height: NODE_RADIUS * 2,
+          px: 0.75,
+          py: 0.5,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '2px',
+          borderRadius: 2,
+          color: selected ? '#fff' : color,
+          backgroundColor: selected
+            ? color
+            : alpha(color, theme.palette.mode === 'light' ? 0.1 : 0.2),
+          border: `1px dashed ${alpha(color, 0.7)}`,
+          outline: active ? `2px dashed ${theme.palette.success.main}` : 'none',
+          outlineOffset: 3,
+        }}
+      >
+        <Typography
+          component="span"
+          noWrap
+          sx={{ width: '100%', textAlign: 'center', fontSize: 9, opacity: 0.7 }}
+        >
+          {node.parentName}
+        </Typography>
+        <Typography
+          component="span"
+          noWrap
+          sx={{
+            width: '100%',
+            textAlign: 'center',
+            fontSize: 12,
+            lineHeight: 1.2,
+            fontWeight: selected ? 700 : 500,
+          }}
+        >
+          {node.name}
+        </Typography>
+      </ButtonBase>
+    </Tooltip>
+  )
+}
+
 export const ProxyGroupTree = () => {
   const { t } = useTranslation()
   const theme = useTheme()
@@ -373,6 +446,52 @@ export const ProxyGroupTree = () => {
     (name: string) =>
       runtimeGroups.get(name)?.type || tree.definitions[name]?.type || '',
     [tree, runtimeGroups],
+  )
+
+  // 沿「根 → … → 直接父组」逐级写回，最后把目标组/节点设为父组的 now
+  const selectChain = useCallback(
+    (
+      chain: string[],
+      owner: string,
+      proxyName: string,
+      publish: { group: string; proxy: string },
+    ) => {
+      const targets: Array<{ group: string; proxy: string }> = []
+      for (let i = 0; i < chain.length - 1; i += 1) {
+        const group = chain[i]
+        const proxy = chain[i + 1]
+        if (!group || !proxy || group === proxy) continue
+        if (runtimeGroups.get(group)?.now === proxy) continue
+        targets.push({ group, proxy })
+      }
+      if (runtimeGroups.get(owner)?.now !== proxyName) {
+        targets.push({ group: owner, proxy: proxyName })
+      }
+
+      if (targets.length === 0) {
+        publishProxySelection(
+          setSharedSelection,
+          publish.group,
+          publish.proxy,
+          'tree',
+        )
+        return
+      }
+
+      pendingSelectionRef.current = {
+        group: publish.group,
+        proxy: publish.proxy,
+        remaining: targets.length,
+      }
+      for (const target of targets) {
+        changeProxy(
+          target.group,
+          target.proxy,
+          runtimeGroups.get(target.group)?.now,
+        )
+      }
+    },
+    [runtimeGroups, changeProxy, setSharedSelection],
   )
 
   // 运行时规则里的 MATCH 目标优先于 YAML 文本，规则改动会即时反映到树
@@ -652,7 +771,8 @@ export const ProxyGroupTree = () => {
       const r = header.getBoundingClientRect()
       const x1 = lr.left - cr.left + transform.x + node.x * transform.scale
       const y1 = lr.top - cr.top + transform.y + node.y * transform.scale
-      const x2 = r.left - cr.left + 2
+      // 状态栏吸顶时用了负外边距铺满右栏，这里补回原来的左右内边距
+      const x2 = r.left - cr.left + 14
       const y2 = r.top - cr.top + r.height / 2
       const highlight =
         selection?.kind === 'proxy' && section.proxies.includes(selection.name)
@@ -821,15 +941,18 @@ export const ProxyGroupTree = () => {
       return
     }
 
-    const same = sharedSelection.group === node.name
-    if (same) {
-      userInteractedRef.current = true
-      setPathKeys([])
-      publishProxySelection(setSharedSelection, '', '', 'tree')
-      return
-    }
+    // 点击左侧的组 = 让父组选中它，同时沿链展开
+    selectChain(node.parentChain, node.parentName, node.name, {
+      group: node.name,
+      proxy: '',
+    })
+  }
 
-    publishProxySelection(setSharedSelection, node.name, '', 'tree')
+  const onProxyNodeClick = (node: LayoutNode) => {
+    selectChain(node.parentChain, node.parentName, node.name, {
+      group: node.parentName,
+      proxy: node.name,
+    })
   }
 
   const onChangeSource = (next: SourceKind) => {
@@ -907,11 +1030,6 @@ export const ProxyGroupTree = () => {
       (item) => item.name,
     )
   }
-
-  const totalProxies = layout.sections.reduce(
-    (count, section) => count + section.proxies.length,
-    0,
-  )
 
   return (
     <Box
@@ -1109,6 +1227,47 @@ export const ProxyGroupTree = () => {
                   transformOrigin: '0 0',
                 }}
               >
+                <GroupDot
+                  node={layout.root}
+                  isRoot
+                  selected={false}
+                  active={activeChain.names.length > 0}
+                  nodeWidth={nodeW}
+                  onClick={onNodeClick}
+                />
+                {layout.nodes.map((node) =>
+                  node.kind === 'proxy' ? (
+                    <ProxyDot
+                      key={node.key}
+                      node={node}
+                      selected={
+                        selection?.kind === 'proxy' &&
+                        selection.name === node.name &&
+                        selection.key === node.parentName
+                      }
+                      active={
+                        activeChain.proxy === node.name ||
+                        runtimeGroups.get(node.parentName)?.now === node.name
+                      }
+                      nodeWidth={nodeW}
+                      onClick={onProxyNodeClick}
+                    />
+                  ) : (
+                    <GroupDot
+                      key={node.key}
+                      node={node}
+                      selected={
+                        selection?.kind === 'group' &&
+                        selection.name === node.name
+                      }
+                      active={activeKeys.has(node.key)}
+                      nodeWidth={nodeW}
+                      onClick={onNodeClick}
+                    />
+                  ),
+                )}
+
+                {/* 连线画在节点之上：组关系与选中链都清晰可见 */}
                 <svg
                   style={{
                     position: 'absolute',
@@ -1118,44 +1277,24 @@ export const ProxyGroupTree = () => {
                     height: Math.max(layout.bottom + 240, 900),
                     overflow: 'visible',
                     pointerEvents: 'none',
+                    zIndex: 3,
                   }}
                 >
-                  {/* 只画当前分组选择链路上的连线，用来看数据流向 */}
-                  {layout.links
-                    .filter((link) => link.highlighted)
-                    .map((link) => (
-                      <path
-                        key={link.key}
-                        d={`M${link.x1},${link.y1} C${link.x1},${(link.y1 + link.y2) / 2} ${link.x2},${(link.y1 + link.y2) / 2} ${link.x2},${link.y2}`}
-                        fill="none"
-                        stroke={theme.palette.info.main}
-                        strokeWidth={2.5}
-                        opacity={0.9}
-                      />
-                    ))}
+                  {layout.links.map((link) => (
+                    <path
+                      key={link.key}
+                      d={`M${link.x1},${link.y1} C${link.x1},${(link.y1 + link.y2) / 2} ${link.x2},${(link.y1 + link.y2) / 2} ${link.x2},${link.y2}`}
+                      fill="none"
+                      stroke={
+                        link.highlighted
+                          ? theme.palette.info.main
+                          : theme.palette.text.disabled
+                      }
+                      strokeWidth={link.highlighted ? 2.5 : 1}
+                      opacity={link.highlighted ? 0.9 : 0.35}
+                    />
+                  ))}
                 </svg>
-
-                <GroupDot
-                  node={layout.root}
-                  isRoot
-                  selected={false}
-                  active={activeChain.names.length > 0}
-                  nodeWidth={nodeW}
-                  onClick={onNodeClick}
-                />
-                {layout.nodes.map((node) => (
-                  <GroupDot
-                    key={node.key}
-                    node={node}
-                    selected={
-                      selection?.kind === 'group' &&
-                      selection.name === node.name
-                    }
-                    active={activeKeys.has(node.key)}
-                    nodeWidth={nodeW}
-                    onClick={onNodeClick}
-                  />
-                ))}
               </Box>
             </Box>
 
@@ -1179,18 +1318,6 @@ export const ProxyGroupTree = () => {
                 zIndex: 2,
               }}
             >
-              <Typography
-                sx={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  letterSpacing: 1,
-                  color: 'text.disabled',
-                  mb: 1,
-                }}
-              >
-                {t('proxies.page.tree.proxyNodes')} ({totalProxies})
-              </Typography>
-
               {layout.sections.length ? (
                 layout.sections.map((section) => {
                   const sectionGroup = runtimeGroups.get(section.groupName)
@@ -1206,11 +1333,21 @@ export const ProxyGroupTree = () => {
                             el instanceof HTMLElement ? el : null
                         }}
                         sx={{
+                          // 组状态栏紧贴右栏顶部吸顶
+                          position: 'sticky',
+                          top: 0,
+                          zIndex: 5,
                           display: 'flex',
                           alignItems: 'center',
                           gap: 1,
                           mb: 1,
                           minWidth: 0,
+                          py: 0.5,
+                          mx: -1.5,
+                          px: 1.5,
+                          bgcolor: 'background.paper',
+                          borderBottom: 1,
+                          borderColor: 'divider',
                         }}
                       >
                         <Box
@@ -1343,7 +1480,7 @@ export const ProxyGroupTree = () => {
                         <Box
                           sx={{
                             display: 'grid',
-                            // 与左侧节点块同宽同高、同列数、同间距
+                            // 与左侧节点块同宽、同列数、同间距；卡片下方多一行静态波形
                             gridTemplateColumns: `repeat(${columns}, ${nodeW}px)`,
                             gap: 1,
                           }}
@@ -1389,67 +1526,20 @@ export const ProxyGroupTree = () => {
                                   group={miniGroup}
                                   proxy={proxyItem}
                                   accentColor={resolveProxyColor(theme, name)}
+                                  showPulseWaveform
                                   selected={
                                     selection?.kind === 'proxy' &&
                                     selection.name === name &&
                                     section.owners[name] === selection.key
                                   }
-                                  onClick={() => {
-                                    // 从根组逐级往下：父组指向子组，最后一层指向节点
-                                    const path = section.ownerPaths[name] ?? [
+                                  onClick={() =>
+                                    selectChain(
+                                      section.ownerPaths[name] ?? [owner],
                                       owner,
-                                    ]
-                                    const targets: Array<{
-                                      group: string
-                                      proxy: string
-                                    }> = []
-                                    for (
-                                      let i = 0;
-                                      i < path.length - 1;
-                                      i += 1
-                                    ) {
-                                      const group = path[i]
-                                      const proxy = path[i + 1]
-                                      if (!group || !proxy || group === proxy)
-                                        continue
-                                      if (
-                                        runtimeGroups.get(group)?.now === proxy
-                                      )
-                                        continue
-                                      targets.push({ group, proxy })
-                                    }
-                                    if (
-                                      runtimeGroups.get(owner)?.now !== name
-                                    ) {
-                                      targets.push({
-                                        group: owner,
-                                        proxy: name,
-                                      })
-                                    }
-
-                                    if (targets.length === 0) {
-                                      publishProxySelection(
-                                        setSharedSelection,
-                                        owner,
-                                        name,
-                                        'tree',
-                                      )
-                                      return
-                                    }
-
-                                    pendingSelectionRef.current = {
-                                      group: owner,
-                                      proxy: name,
-                                      remaining: targets.length,
-                                    }
-                                    for (const target of targets) {
-                                      changeProxy(
-                                        target.group,
-                                        target.proxy,
-                                        runtimeGroups.get(target.group)?.now,
-                                      )
-                                    }
-                                  }}
+                                      name,
+                                      { group: owner, proxy: name },
+                                    )
+                                  }
                                 />
                               </Box>
                             )
@@ -1470,6 +1560,16 @@ export const ProxyGroupTree = () => {
                     borderRadius: 2,
                   }}
                 >
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'center',
+                      mb: 1,
+                      '& svg': { width: 160, height: 96 },
+                    }}
+                  >
+                    <NodePulse />
+                  </Box>
                   <Typography variant="body2" color="text.secondary">
                     {t('proxies.page.tree.emptyHint')}
                   </Typography>
@@ -1488,8 +1588,8 @@ export const ProxyGroupTree = () => {
             width: '100%',
             height: '100%',
             pointerEvents: 'none',
-            // 连线展示在卡片上层
-            zIndex: 3,
+            // 连线始终画在最上层：吸顶状态栏、节点卡片都不遮住它
+            zIndex: 7,
             overflow: 'visible',
           }}
         >

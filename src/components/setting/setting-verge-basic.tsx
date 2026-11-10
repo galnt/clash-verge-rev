@@ -29,6 +29,15 @@ interface Props {
 
 const OS = getSystem()
 
+/** 启动页面只保留主导航里的这 5 个入口 */
+const START_PAGE_OPTIONS = [
+  navigationItems.proxies,
+  navigationItems.profiles,
+  navigationItems.connections,
+  navigationItems.logs,
+  navigationItems.settings,
+] as const
+
 const languageOptions = supportedLanguages.map((code) => {
   const labels: { [key: string]: string } = {
     en: 'English',
@@ -180,14 +189,22 @@ const SettingVergeBasic = ({ onError }: Props) => {
         label={t('settings.components.verge.basic.fields.startPage')}
       >
         <GuardState
-          value={start_page ?? '/proxies'}
+          value={
+            START_PAGE_OPTIONS.some((page) => page.path === start_page)
+              ? start_page
+              : '/proxies'
+          }
           onCatch={onError}
           onFormat={(e: any) => e.target.value}
           onChange={(e) => onChangeData({ start_page: e })}
           onGuard={(e) => patchVerge({ start_page: e })}
         >
-          <Select size="small" sx={{ width: 140, '> div': { py: '7.5px' } }}>
-            {Object.values(navigationItems).map((page) => {
+          <Select
+            disabled
+            size="small"
+            sx={{ width: 140, '> div': { py: '7.5px' } }}
+          >
+            {START_PAGE_OPTIONS.map((page) => {
               return (
                 <MenuItem key={page.path} value={page.path}>
                   {t(page.label)}

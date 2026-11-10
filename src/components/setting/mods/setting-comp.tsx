@@ -18,6 +18,7 @@ interface ItemProps {
   children?: ReactNode
   secondary?: ReactNode
   onClick?: () => void | Promise<any>
+  disabled?: boolean
 }
 
 export const SettingItem: React.FC<ItemProps> = ({
@@ -26,6 +27,7 @@ export const SettingItem: React.FC<ItemProps> = ({
   children,
   secondary,
   onClick,
+  disabled = false,
 }) => {
   const clickable = !!onClick
 
@@ -38,6 +40,7 @@ export const SettingItem: React.FC<ItemProps> = ({
 
   const [isLoading, setIsLoading] = useState(false)
   const handleClick = () => {
+    if (disabled) return
     if (onClick) {
       if (isAsyncFunction(onClick)) {
         setIsLoading(true)
@@ -50,7 +53,7 @@ export const SettingItem: React.FC<ItemProps> = ({
 
   return clickable ? (
     <ListItem disablePadding>
-      <ListItemButton onClick={handleClick} disabled={isLoading}>
+      <ListItemButton onClick={handleClick} disabled={disabled || isLoading}>
         <ListItemText primary={primary} secondary={secondary} />
         {isLoading ? (
           <CircularProgress color="inherit" size={20} />

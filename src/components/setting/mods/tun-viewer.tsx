@@ -28,6 +28,8 @@ import { areValidIpCidrs } from '@/utils/network'
 import { StackModeSwitch } from './stack-mode-switch'
 
 const OS = getSystem()
+/** TUN 模式堆栈固定选中 System */
+const DEFAULT_TUN_STACK = 'system'
 
 const splitRouteExcludeAddress = (value: string) =>
   value
@@ -42,7 +44,7 @@ export function TunViewer({ ref }: { ref?: Ref<DialogRef> }) {
 
   const [open, setOpen] = useState(false)
   const [values, setValues] = useState({
-    stack: 'mixed',
+    stack: DEFAULT_TUN_STACK,
     device: OS === 'macos' ? 'utun1024' : 'Mihomo',
     autoRoute: true,
     routeExcludeAddress: '',
@@ -72,7 +74,7 @@ export function TunViewer({ ref }: { ref?: Ref<DialogRef> }) {
       const computedAutoRedirect =
         OS === 'linux' ? (nextAutoRoute ? rawAutoRedirect : false) : false
       setValues({
-        stack: clash?.tun.stack ?? 'gvisor',
+        stack: DEFAULT_TUN_STACK,
         device: clash?.tun.device ?? (OS === 'macos' ? 'utun1024' : 'Mihomo'),
         autoRoute: nextAutoRoute,
         routeExcludeAddress: (clash?.tun['route-exclude-address'] ?? []).join(
@@ -148,7 +150,7 @@ export function TunViewer({ ref }: { ref?: Ref<DialogRef> }) {
             size="small"
             onClick={async () => {
               const tun: IConfigData['tun'] = {
-                stack: 'gvisor',
+                stack: DEFAULT_TUN_STACK,
                 device: OS === 'macos' ? 'utun1024' : 'Mihomo',
                 'auto-route': true,
                 ...(OS === 'linux'
@@ -163,7 +165,7 @@ export function TunViewer({ ref }: { ref?: Ref<DialogRef> }) {
                 mtu: 1500,
               }
               setValues({
-                stack: 'gvisor',
+                stack: DEFAULT_TUN_STACK,
                 device: OS === 'macos' ? 'utun1024' : 'Mihomo',
                 autoRoute: true,
                 routeExcludeAddress: '',

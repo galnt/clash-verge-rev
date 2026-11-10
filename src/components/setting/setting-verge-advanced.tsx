@@ -96,11 +96,13 @@ const SettingVergeAdvanced = ({ onError: _ }: Props) => {
       />
 
       <SettingItem
+        disabled
         onClick={() => configRef.current?.open()}
         label={t('settings.components.verge.advanced.fields.runtimeConfig')}
       />
 
       <SettingItem
+        disabled
         onClick={openAppDir}
         label={t('settings.components.verge.advanced.fields.openConfDir')}
         extra={
@@ -112,11 +114,13 @@ const SettingVergeAdvanced = ({ onError: _ }: Props) => {
       />
 
       <SettingItem
+        disabled
         onClick={openCoreDir}
         label={t('settings.components.verge.advanced.fields.openCoreDir')}
       />
 
       <SettingItem
+        disabled
         onClick={openLogsDir}
         label={t('settings.components.verge.advanced.fields.openLogsDir')}
       />
