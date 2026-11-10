@@ -51,6 +51,9 @@ if (process.platform === 'win32') {
 }
 
 const env = { ...process.env }
+// 上层目录若存在 go.work（如 E:\go.work）且未包含 core 模块，go 会拒绝构建，
+// 这里强制只用 core/go.mod，避免受外部 workspace 影响。
+env.GOWORK = 'off'
 // Throne 在 windows 上用静态构建，macOS/Linux 需要 cgo 才能编 tun 相关代码。
 env.CGO_ENABLED = process.platform === 'win32' ? '0' : '1'
 
