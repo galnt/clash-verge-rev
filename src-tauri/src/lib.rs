@@ -287,6 +287,8 @@ pub fn run() {
                 resolve::resolve_setup_async();
                 resolve::resolve_setup_sync();
                 resolve::init_signal();
+                // 常驻 Throne core：启动即拉起，测速时直接复用，不用每次重新等它起来
+                crate::core_ipc::warm_up();
                 logging!(info, Type::Setup, "初始化已启动");
             })) {
                 log_setup_panic("window-core", panic);
@@ -445,6 +447,7 @@ pub fn run() {
             if !handle::Handle::global().is_exiting() {
                 feat::quit().await;
             }
+            crate::core_ipc::shutdown().await;
             logging!(info, Type::System, "Application exited");
         }),
         #[allow(unused_variables)]

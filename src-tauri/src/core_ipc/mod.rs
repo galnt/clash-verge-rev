@@ -24,8 +24,8 @@ use std::{
     path::{Path, PathBuf},
     process::Stdio,
     sync::{
-        Arc,
-        atomic::{AtomicU32, Ordering},
+        Arc, OnceLock,
+        atomic::{AtomicBool, AtomicU32, Ordering},
     },
     time::Duration,
 };
@@ -57,6 +57,8 @@ struct Shared {
     writer: Mutex<PipeWriter>,
     pending: Mutex<PendingMap>,
     next_request: AtomicU32,
+    /// 读循环结束（连接断开）后置位，用于判定这个会话还能不能复用。
+    closed: AtomicBool,
 }
 
 /// 一个 core 子进程 + 一条 IPC 连接。Drop 时关闭连接（core 随即自行退出）。
@@ -101,6 +103,7 @@ impl CoreSession {
             writer: Mutex::new(writer),
             pending: Mutex::new(HashMap::new()),
             next_request: AtomicU32::new(1),
+            closed: AtomicBool::new(false),
         });
         let reader_task = tokio::spawn(read_loop(reader, Arc::clone(&shared)));
         let log_tasks = pump_child_output(&mut child);
@@ -157,6 +160,63 @@ impl CoreSession {
         }
         Ok(data)
     }
+
+    /// 连接是否仍然可用：core 退出或管道断开后为 false，需要重新拉起。
+    pub fn is_alive(&self) -> bool {
+        !self.shared.closed.load(Ordering::SeqCst)
+    }
+}
+
+/// 常驻 core：应用启动时拉起一次，之后整个生命周期复用同一个子进程。
+static SHARED_SESSION: OnceLock<Mutex<Option<Arc<CoreSession>>>> = OnceLock::new();
+
+fn shared_slot() -> &'static Mutex<Option<Arc<CoreSession>>> {
+    SHARED_SESSION.get_or_init(|| Mutex::new(None))
+}
+
+/// 取得常驻会话：没有或已断开就重新拉起，并发调用只会拉起一次。
+pub async fn shared_session() -> Result<Arc<CoreSession>> {
+    let mut slot = shared_slot().lock().await;
+
+    // 复用仍然存活的会话
+    if let Some(session) = slot.as_ref().filter(|session| session.is_alive()) {
+        return Ok(Arc::clone(session));
+    }
+
+    if slot.is_some() {
+        logging!(warn, Type::Core, "[CoreIPC] resident core is gone, restarting");
+        // 丢掉旧会话：其 Drop 会关掉管道并杀掉残留子进程。
+        let _ = slot.take();
+    }
+
+    let core_exe = resolve_core_exe()?;
+    let session = Arc::new(CoreSession::start(&core_exe).await?);
+    *slot = Some(Arc::clone(&session));
+    Ok(session)
+}
+
+/// 后台预热：应用启动时调用，让 core 常驻，测速时无需再等它启动。
+pub fn warm_up() {
+    let _ = tauri::async_runtime::spawn(async {
+        match shared_session().await {
+            Ok(_) => logging!(info, Type::Core, "[CoreIPC] resident core ready"),
+            Err(err) => {
+                logging!(warn, Type::Core, "[CoreIPC] resident core unavailable: {}", err)
+            }
+        }
+    });
+}
+
+/// 退出前释放常驻会话（关闭管道并结束子进程）。
+pub async fn shutdown() {
+    let mut slot = shared_slot().lock().await;
+    let session = slot.take();
+    drop(slot);
+
+    if session.is_some() {
+        logging!(info, Type::Core, "[CoreIPC] resident core stopped");
+    }
+    // session 在此 drop：关闭管道并结束子进程
 }
 
 impl Drop for CoreSession {
@@ -191,6 +251,7 @@ async fn read_loop(mut reader: PipeReader, shared: Arc<Shared>) {
     }
 
     // 连接断开：丢掉所有等待中的 responder，让对应调用立即返回错误。
+    shared.closed.store(true, Ordering::SeqCst);
     shared.pending.lock().await.clear();
     logging!(warn, Type::Core, "[CoreIPC] core connection closed");
 }

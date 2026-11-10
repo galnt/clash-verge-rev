@@ -37,9 +37,13 @@ import { delayGroup } from 'tauri-plugin-mihomo-api'
 
 import NodePulse from '@/assets/image/node-pulse.svg?react'
 import { formatConnectionTraffic } from '@/components/connection/connection-row-view'
-import { useConnectionData } from '@/hooks/use-connection-data'
+import {
+  getConnectionSnapshot,
+  subscribeConnectionData,
+} from '@/hooks/use-connection-data'
 import { useProxySelection } from '@/hooks/use-proxy-selection'
 import { useVerge } from '@/hooks/use-verge'
+import { useVisibility } from '@/hooks/use-visibility'
 import {
   useAppRefreshers,
   useProxiesData,
@@ -105,6 +109,9 @@ const estimatePaneWidth = () =>
 
 /** 滚轮上下滚动的回弹余量 */
 const SCROLL_SLACK = 40
+
+const formatSpeedLabel = (value: number) =>
+  value > 0 ? `${formatConnectionTraffic(value)}/s` : '0'
 
 const SORT_TOOLTIP_KEYS = [
   'proxies.page.tooltips.sortDefault',
@@ -292,78 +299,6 @@ const GroupDot = ({
             {now || '—'}
           </Typography>
         </Box>
-      </ButtonBase>
-    </Tooltip>
-  )
-}
-
-/** 左栏里原组关系下的实体节点：虚线框，点击即切换代理 */
-const ProxyDot = ({
-  node,
-  selected,
-  active,
-  nodeWidth,
-  onClick,
-}: {
-  node: LayoutNode
-  selected: boolean
-  active: boolean
-  nodeWidth: number
-  onClick: (node: LayoutNode) => void
-}) => {
-  const theme = useTheme()
-  const color = resolveProxyColor(theme, node.name)
-
-  return (
-    <Tooltip title={`${node.parentName} → ${node.name}`} arrow>
-      <ButtonBase
-        onClick={() => onClick(node)}
-        onPointerDown={(event) => event.stopPropagation()}
-        sx={{
-          position: 'absolute',
-          left: node.x,
-          top: node.y,
-          transform: 'translate(-50%, -50%)',
-          zIndex: 2,
-          width: nodeWidth,
-          height: NODE_RADIUS * 2,
-          px: 0.75,
-          py: 0.5,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '2px',
-          borderRadius: 2,
-          color: selected ? '#fff' : color,
-          backgroundColor: selected
-            ? color
-            : alpha(color, theme.palette.mode === 'light' ? 0.1 : 0.2),
-          border: `1px dashed ${alpha(color, 0.7)}`,
-          outline: active ? `2px dashed ${theme.palette.success.main}` : 'none',
-          outlineOffset: 3,
-        }}
-      >
-        <Typography
-          component="span"
-          noWrap
-          sx={{ width: '100%', textAlign: 'center', fontSize: 9, opacity: 0.7 }}
-        >
-          {node.parentName}
-        </Typography>
-        <Typography
-          component="span"
-          noWrap
-          sx={{
-            width: '100%',
-            textAlign: 'center',
-            fontSize: 12,
-            lineHeight: 1.2,
-            fontWeight: selected ? 700 : 500,
-          }}
-        >
-          {node.name}
-        </Typography>
       </ButtonBase>
     </Tooltip>
   )
@@ -763,13 +698,18 @@ export const ProxyGroupTree = () => {
     return () => observer.disconnect()
   }, [hasTree])
 
-  // 实时速率：按连接链里的出口节点（非分组名）汇总
-  const { response: connectionResponse } = useConnectionData()
-  const activeConnections = connectionResponse.data.activeConnections
+  // 实时速率：按连接链里的出口节点（非分组名）汇总。
+  // 连接快照每 500ms 一次，但树里只有分组连线上的速率文字用到它，
+  // 所以这里不进 React state，直接算进 ref 再命令式写 SVG，
+  // 避免成百上千个节点卡片刻意跟着重渲染。
+  const pageVisible = useVisibility()
+  const sectionSpeedsRef = useRef(
+    new Map<string, { up: number; down: number }>(),
+  )
 
-  const proxySpeeds = useMemo(() => {
+  const computeSectionSpeeds = useCallback(() => {
     const byProxy = new Map<string, { up: number; down: number }>()
-    for (const connection of activeConnections) {
+    for (const connection of getConnectionSnapshot().activeConnections) {
       const chain = connection.chains ?? []
       const proxy = chain.find((name) => !isGroup(name)) ?? chain[0]
       if (!proxy) continue
@@ -778,27 +718,22 @@ export const ProxyGroupTree = () => {
       speed.down += connection.curDownload ?? 0
       byProxy.set(proxy, speed)
     }
-    return byProxy
-  }, [activeConnections, isGroup])
 
-  const sectionSpeeds = useMemo(() => {
     const bySection = new Map<string, { up: number; down: number }>()
     for (const section of layout.sections) {
       let up = 0
       let down = 0
       for (const name of section.proxies) {
-        const speed = proxySpeeds.get(name)
+        const speed = byProxy.get(name)
         if (!speed) continue
         up += speed.up
         down += speed.down
       }
       bySection.set(section.groupKey, { up, down })
     }
-    return bySection
-  }, [proxySpeeds, layout.sections])
 
-  const formatSpeedLabel = (value: number) =>
-    value > 0 ? `${formatConnectionTraffic(value)}/s` : '0'
+    sectionSpeedsRef.current = bySection
+  }, [isGroup, layout.sections])
 
   // 该分组当前使用（或选中的）实体节点名，用于多画一条连到卡片的线
   const sectionTargetName = useCallback(
@@ -859,6 +794,9 @@ export const ProxyGroupTree = () => {
         textEl.setAttribute('x', String(mx))
         textEl.setAttribute('y', String(my))
 
+        const speed = sectionSpeedsRef.current.get(section.groupKey)
+        textEl.textContent = `↑ ${formatSpeedLabel(speed?.up ?? 0)}  ↓ ${formatSpeedLabel(speed?.down ?? 0)}`
+
         const box = textEl.getBBox()
         bgEl.setAttribute('x', String(box.x - 4))
         bgEl.setAttribute('y', String(box.y - 2))
@@ -895,8 +833,36 @@ export const ProxyGroupTree = () => {
   }, [layout, transform, selection, theme, sectionTargetName])
 
   useLayoutEffect(() => {
+    computeSectionSpeeds()
     updateCrossLines()
-  }, [updateCrossLines, sectionSpeeds])
+  }, [computeSectionSpeeds, updateCrossLines])
+
+  // updateCrossLines 的引用会随拖拽/缩放频繁变化，用 ref 避免反复订阅连接数据
+  const updateCrossLinesRef = useRef(updateCrossLines)
+  useEffect(() => {
+    updateCrossLinesRef.current = updateCrossLines
+  }, [updateCrossLines])
+
+  // 连接快照只驱动 SVG 上的速率文字：命令式更新，不触发 React 渲染
+  useEffect(() => {
+    if (!pageVisible) return
+
+    let timer: ReturnType<typeof setTimeout> | null = null
+    const schedule = () => {
+      if (timer) return
+      timer = setTimeout(() => {
+        timer = null
+        computeSectionSpeeds()
+        updateCrossLinesRef.current()
+      }, 1000)
+    }
+
+    const unsubscribe = subscribeConnectionData(schedule)
+    return () => {
+      unsubscribe()
+      if (timer) clearTimeout(timer)
+    }
+  }, [pageVisible, computeSectionSpeeds])
 
   useEffect(() => {
     const right = rightRef.current
@@ -1026,6 +992,32 @@ export const ProxyGroupTree = () => {
   }
 
   const timeout = verge?.default_latency_timeout || 10000
+
+  // 树与右栏共用同一份兜底数据：配置里有、运行时不存在的节点也要能展示
+  const proxyItemOf = (name: string): IProxyItem =>
+    records[name] ?? {
+      name,
+      type: tree.proxyDetails[name]?.type ?? '—',
+      udp: false,
+      xudp: false,
+      tfo: false,
+      mptcp: false,
+      smux: false,
+      history: [],
+    }
+
+  const proxyGroupOf = (name: string): IProxyGroupItem =>
+    runtimeGroups.get(name) ?? {
+      name,
+      type: 'Selector',
+      udp: false,
+      xudp: false,
+      tfo: false,
+      mptcp: false,
+      smux: false,
+      history: [],
+      all: [],
+    }
 
   const sectionProxies = (section: ProxySection): IProxyItem[] =>
     section.proxies
@@ -1301,21 +1293,39 @@ export const ProxyGroupTree = () => {
                 />
                 {layout.nodes.map((node) =>
                   node.kind === 'proxy' ? (
-                    <ProxyDot
+                    <Box
                       key={node.key}
-                      node={node}
-                      selected={
-                        selection?.kind === 'proxy' &&
-                        selection.name === node.name &&
-                        selection.key === node.parentName
-                      }
-                      active={
-                        activeChain.proxy === node.name ||
-                        runtimeGroups.get(node.parentName)?.now === node.name
-                      }
-                      nodeWidth={nodeW}
-                      onClick={onProxyNodeClick}
-                    />
+                      onPointerDown={(event) => event.stopPropagation()}
+                      sx={{
+                        position: 'absolute',
+                        left: node.x,
+                        top: node.y,
+                        transform: 'translate(-50%, -50%)',
+                        zIndex: 2,
+                        width: nodeW,
+                        borderRadius: 1.5,
+                        outline:
+                          activeChain.proxy === node.name ||
+                          runtimeGroups.get(node.parentName)?.now === node.name
+                            ? `2px dashed ${theme.palette.success.main}`
+                            : 'none',
+                        outlineOffset: 3,
+                      }}
+                    >
+                      {/* 与右栏分组卡片同一套节点样式：类型 / XUDP / 延时 / 速度 */}
+                      <ProxyItemMini
+                        group={proxyGroupOf(node.parentName)}
+                        proxy={proxyItemOf(node.name)}
+                        accentColor={resolveProxyColor(theme, node.name)}
+                        showPulseWaveform
+                        selected={
+                          selection?.kind === 'proxy' &&
+                          selection.name === node.name &&
+                          selection.key === node.parentName
+                        }
+                        onClick={() => onProxyNodeClick(node)}
+                      />
+                    </Box>
                   ) : (
                     <GroupDot
                       key={node.key}
@@ -1553,28 +1563,8 @@ export const ProxyGroupTree = () => {
                           {sortedSectionNames(section).map((name) => {
                             const owner =
                               section.owners[name] ?? section.groupName
-                            const proxyItem: IProxyItem = records[name] ?? {
-                              name,
-                              type: tree.proxyDetails[name]?.type ?? '—',
-                              udp: false,
-                              xudp: false,
-                              tfo: false,
-                              mptcp: false,
-                              smux: false,
-                              history: [],
-                            }
-                            const miniGroup: IProxyGroupItem =
-                              runtimeGroups.get(owner) ?? {
-                                name: owner,
-                                type: 'Selector',
-                                udp: false,
-                                xudp: false,
-                                tfo: false,
-                                mptcp: false,
-                                smux: false,
-                                history: [],
-                                all: [],
-                              }
+                            const proxyItem = proxyItemOf(name)
+                            const miniGroup = proxyGroupOf(owner)
 
                             const cardKey = `${section.groupKey}/${name}`
 
@@ -1697,9 +1687,7 @@ export const ProxyGroupTree = () => {
                 fontSize={10}
                 fill={theme.palette.text.secondary}
                 style={{ fontVariantNumeric: 'tabular-nums' }}
-              >
-                {`↑ ${formatSpeedLabel(sectionSpeeds.get(section.groupKey)?.up ?? 0)}  ↓ ${formatSpeedLabel(sectionSpeeds.get(section.groupKey)?.down ?? 0)}`}
-              </text>
+              />
             </g>
           ))}
         </svg>

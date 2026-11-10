@@ -66,9 +66,8 @@ const LogPage = () => {
 
   useEffect(() => {
     if (!isDescending && scrollRef.current.isNearBottom) {
-      virtuosoRef.current?.scrollToIndex(filteredLogs.length - 1, {
-        behavior: 'smooth',
-      })
+      // 日志是成批追加的，用平滑滚动会让浏览器几乎一直在跑滚动动画
+      virtuosoRef.current?.scrollToIndex(filteredLogs.length - 1)
     }
   }, [isDescending, filteredLogs.length])
 

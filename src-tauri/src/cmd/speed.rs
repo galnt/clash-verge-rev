@@ -9,7 +9,7 @@ use tauri::{AppHandle, Emitter as _};
 use clash_verge_logging::{Type, logging};
 
 use super::CmdResult;
-use crate::{config::Config, core_ipc::CoreSession, core_ipc::proto, feat};
+use crate::{config::Config, core_ipc::proto, feat};
 
 static RUNNING: AtomicBool = AtomicBool::new(false);
 
@@ -107,9 +107,9 @@ async fn run_inner(
     if job.nodes.is_empty() {
         logging!(warn, Type::Cmd, "[SpeedTest] no testable nodes, core not started");
     } else {
-        let core_exe = crate::core_ipc::resolve_core_exe()?;
         let boot = Instant::now();
-        let session = Arc::new(CoreSession::start(&core_exe).await?);
+        // 常驻 core：应用启动时就已拉起，这里直接复用同一个子进程
+        let session = crate::core_ipc::shared_session().await?;
         logging!(
             info,
             Type::Cmd,

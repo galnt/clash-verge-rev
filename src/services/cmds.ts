@@ -129,13 +129,23 @@ export async function syncTrayProxySelection() {
   return invoke<void>('sync_tray_proxy_selection')
 }
 
-export async function calcuProxies(): Promise<{
+interface CalculatedProxies {
   global: IProxyGroupItem
   direct: IProxyItem
   groups: IProxyGroupItem[]
   records: Record<string, IProxyItem>
   proxies: IProxyItem[]
-}> {
+}
+
+/**
+ * 代理数据默认 3s 轮询一次，绝大多数轮次内容完全没变。
+ * 这里按内容复用上一次的结果对象：引用不变 → SWR/useMemo 不再向上冒泡，
+ * 代理页与分组树就不会每隔 3s 整页重渲染一次。
+ */
+let lastCalculatedProxies: CalculatedProxies | null = null
+let lastCalculatedProxiesJson = ''
+
+export async function calcuProxies(): Promise<CalculatedProxies> {
   const [proxyResponse, providerResponse, runtimeGroupOrder] =
     await Promise.all([
       getProxies(),
@@ -232,13 +242,22 @@ export async function calcuProxies(): Promise<{
   // 原本的 records 拥有所有节点信息，新版本内核需要将 provider 的节点信息合并到 records 中, 同时兼容旧版本数据
   const records = { ...proxyRecord, ...providerMap }
 
-  return {
+  const result: CalculatedProxies = {
     global: _global as IProxyGroupItem,
     direct: direct as IProxyItem,
     groups,
     records: records as Record<string, IProxyItem>,
     proxies: (proxies as IProxyItem[]) ?? [],
   }
+
+  const json = JSON.stringify(result)
+  if (lastCalculatedProxies && json === lastCalculatedProxiesJson) {
+    return lastCalculatedProxies
+  }
+
+  lastCalculatedProxies = result
+  lastCalculatedProxiesJson = json
+  return result
 }
 
 export async function calcuProxyProviders() {

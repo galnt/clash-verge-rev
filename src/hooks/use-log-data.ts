@@ -9,7 +9,9 @@ import { useClashLog } from './use-clash-log'
 import { useMihomoWsSubscription } from './use-mihomo-ws-subscription'
 
 const MAX_LOG_NUM = 1000
-const FLUSH_DELAY_MS = 50
+// 日志密集时每次 flush 都会触发整页过滤 + 列表重渲染，50ms 相当于 20 次/秒；
+// 合并到 250ms 后渲染次数降为原来的 1/5，视觉上仍是「实时」。
+const FLUSH_DELAY_MS = 250
 type LogType = ILogItem['type']
 
 const DEFAULT_LOG_TYPES: LogType[] = ['debug', 'info', 'warning', 'error']

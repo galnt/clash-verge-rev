@@ -352,10 +352,10 @@ const stopConnectionMonitorIfIdle = () => {
   void closeConnectionSocket()
 }
 
-const getConnectionSnapshot = () => connectionData
+export const getConnectionSnapshot = () => connectionData
 const getConnectionSummarySnapshot = () => connectionSummary
 
-const subscribeConnectionData = (listener: ConnectionListener) => {
+export const subscribeConnectionData = (listener: ConnectionListener) => {
   connectionListeners.add(listener)
   startConnectionMonitor()
   return () => {

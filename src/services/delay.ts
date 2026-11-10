@@ -20,8 +20,8 @@ class DelayManager {
   private cache = new Map<string, DelayUpdate>()
   private urlMap = new Map<string, string>()
 
-  // 每个节点的监听
-  private listenerMap = new Map<string, (update: DelayUpdate) => void>()
+  // 每个节点的监听：同一个节点可能同时渲染多处（如分组树与右侧卡片）
+  private listenerMap = new Map<string, Set<(update: DelayUpdate) => void>>()
 
   // 每个分组的监听
   private groupListenerMap = new Map<string, () => void>()
@@ -56,18 +56,20 @@ class DelayManager {
       this.pendingItemUpdates = new Map()
 
       updates.forEach((queue, key) => {
-        const listener = this.listenerMap.get(key)
-        if (!listener) return
+        const listeners = this.listenerMap.get(key)
+        if (!listeners || listeners.size === 0) return
 
         queue.forEach((update) => {
-          try {
-            listener(update)
-          } catch (error) {
-            console.error(
-              `[DelayManager] 通知节点延迟监听器失败: ${key}`,
-              error,
-            )
-          }
+          listeners.forEach((listener) => {
+            try {
+              listener(update)
+            } catch (error) {
+              console.error(
+                `[DelayManager] 通知节点延迟监听器失败: ${key}`,
+                error,
+              )
+            }
+          })
         })
       })
     })
@@ -122,12 +124,28 @@ class DelayManager {
     listener: (update: DelayUpdate) => void,
   ) {
     const key = hashKey(name, group)
-    this.listenerMap.set(key, listener)
+    const listeners = this.listenerMap.get(key)
+    if (listeners) {
+      listeners.add(listener)
+      return
+    }
+    this.listenerMap.set(key, new Set([listener]))
   }
 
-  removeListener(name: string, group: string) {
+  removeListener(
+    name: string,
+    group: string,
+    listener?: (update: DelayUpdate) => void,
+  ) {
     const key = hashKey(name, group)
-    this.listenerMap.delete(key)
+    if (!listener) {
+      this.listenerMap.delete(key)
+      return
+    }
+    const listeners = this.listenerMap.get(key)
+    if (!listeners) return
+    listeners.delete(listener)
+    if (listeners.size === 0) this.listenerMap.delete(key)
   }
 
   setGroupListener(group: string, listener: () => void) {
