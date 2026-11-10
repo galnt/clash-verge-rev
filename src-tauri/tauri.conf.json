@@ -21,10 +21,10 @@
     "copyright": "GNU General Public License v3.0",
     "category": "DeveloperTool",
     "shortDescription": "Clash Verge Rev",
-    "createUpdaterArtifacts": true
+    "createUpdaterArtifacts": false
   },
   "build": {
-    "beforeBuildCommand": "pnpm run web:build",
+    "beforeBuildCommand": "node node_modules/vite/bin/vite.js build",
     "frontendDist": "../dist",
     "beforeDevCommand": "pnpm run web:dev",
     "devUrl": "http://localhost:3000/",

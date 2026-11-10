@@ -201,6 +201,7 @@
     .the_titlebar {
       width: 100%;
       display: flex;
+      align-items: center;
       justify-content: flex-end;
       padding: 10px;
       box-sizing: border-box;
@@ -234,7 +235,8 @@
     .the_titlebar {
       width: 100%;
       display: flex;
-      justify-content: flex-start;
+      align-items: center;
+      justify-content: flex-end;
       padding: 10px;
       box-sizing: border-box;
       height: 36px;
@@ -243,7 +245,6 @@
       &-drag-region {
         align-self: stretch;
         flex: 1 1 auto;
-        order: 1;
       }
     }
 
@@ -360,4 +361,54 @@
       }
     }
   }
+}
+
+/* 顶部水平导航 */
+.the_titlebar-nav {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 18px;
+  padding-left: 6px;
+  white-space: nowrap;
+  app-region: no-drag;
+
+  &-item {
+    border: 0;
+    padding: 0;
+    background: transparent;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 16px;
+    color: #ff3b5c;
+    opacity: 0.75;
+    cursor: pointer;
+
+    &:hover {
+      opacity: 1;
+    }
+
+    &.is-active {
+      opacity: 1;
+      font-weight: 700;
+      text-decoration: underline;
+      text-underline-offset: 4px;
+    }
+  }
+}
+
+/* 左侧栏保留结构，仅保留 1px 占位 */
+.layout > .layout-content > .layout-content__left,
+.layout.layout--nav-collapsed > .layout-content > .layout-content__left {
+  flex: 0 0 1px !important;
+  width: 1px !important;
+  min-width: 1px !important;
+  max-width: 1px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
 }
