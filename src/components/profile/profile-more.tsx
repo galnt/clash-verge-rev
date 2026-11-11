@@ -12,6 +12,8 @@ import { useLockFn } from 'ahooks'
 import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+// 与 src-tauri/src/utils/tmpl.rs 的 ITEM_SCRIPT 共用同一份默认脚本
+import DEFAULT_SCRIPT from '@/assets/default-global-script.js.tmpl?raw'
 import { EditorViewer } from '@/components/profile/editor-viewer'
 import { useEditorDocument } from '@/hooks/use-editor-document'
 import { viewProfile, readProfileFile, saveProfileFile } from '@/services/cmds'
@@ -28,15 +30,6 @@ interface Props {
 }
 
 const EMPTY_LOG_INFO: [string, string][] = []
-
-// Default global extend script content (mirrors `ITEM_SCRIPT` in
-// src-tauri/src/utils/tmpl.rs).
-const DEFAULT_SCRIPT = `// Define main function (script entry)
-
-function main(config, profileName) {
-  return config;
-}
-`
 
 // profile enhanced item
 export const ProfileMore = (props: Props) => {

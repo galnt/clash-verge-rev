@@ -18,6 +18,7 @@ import { BaseDialog, Switch } from '@/components/base'
 import { useProfiles } from '@/hooks/use-profiles'
 import { createProfile, patchProfile } from '@/services/cmds'
 import { showNotice } from '@/services/notice-service'
+import { maskSubscriptionUrl } from '@/utils/builtin-profiles'
 import { version } from '@root/package.json'
 
 import { FileInput } from './file-input'
@@ -53,7 +54,7 @@ export function ProfileViewer({ onChange, ref }: ProfileViewerProps) {
         desc: '',
         url: '',
         option: {
-          with_proxy: false,
+          with_proxy: true,
           self_proxy: false,
         },
       },
@@ -292,6 +293,13 @@ export function ProfileViewer({ onChange, ref }: ProfileViewerProps) {
                 {...text}
                 {...field}
                 multiline
+                // 编辑时只读且按统一规则遮蔽 token；field.value 仍是完整链接，保存不会被截断
+                disabled={openType === 'edit'}
+                value={
+                  openType === 'edit'
+                    ? maskSubscriptionUrl(field.value)
+                    : (field.value ?? '')
+                }
                 label={t('profiles.modals.profileForm.fields.subscriptionUrl')}
               />
             )}

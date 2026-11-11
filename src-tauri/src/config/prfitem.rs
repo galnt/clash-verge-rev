@@ -124,6 +124,39 @@ pub struct PrfOption {
     pub groups: Option<String>,
 }
 
+/// 内置订阅（不可删除）：uid 同时作为文件名前缀，需符合 REGEX_PROFILE_FILE
+pub struct BuiltinSubscription {
+    pub uid: &'static str,
+    pub name: &'static str,
+    pub desc: &'static str,
+    pub url: &'static str,
+}
+
+pub const BUILTIN_SUBSCRIPTIONS: &[BuiltinSubscription] = &[
+    BuiltinSubscription {
+        uid: "RbuiltinCf",
+        name: "7sB41TD-WzLyxRc-.yaml",
+        desc: "CF优选(推荐)",
+        url: "https://gitee.com/api/v5/repos/galnt/transsub/raw/7sB41TD-WzLyxRc-.yaml?access_token=ddad87b9406e9a45bfd295454fcb076c",
+    },
+    BuiltinSubscription {
+        uid: "RbuiltinCollect",
+        name: "DONeD-Ts5IH6gIal.yaml",
+        desc: "网上收集",
+        url: "https://gitee.com/api/v5/repos/galnt/transsub/raw/DONeD-Ts5IH6gIal.yaml?access_token=d3006fbe97490216c4efd22e34b2dd5a",
+    },
+    BuiltinSubscription {
+        uid: "RbuiltinQuality",
+        name: "7chGw9rrjF-WPQg2.yaml",
+        desc: "优质订阅",
+        url: "https://gitee.com/api/v5/repos/galnt/transsub/raw/7chGw9rrjF-WPQg2.yaml?access_token=d3006fbe97490216c4efd22e34b2dd5a",
+    },
+];
+
+pub fn is_builtin_subscription(uid: &str) -> bool {
+    BUILTIN_SUBSCRIPTIONS.iter().any(|item| item.uid == uid)
+}
+
 impl PrfOption {
     pub fn merge(one: Option<&Self>, other: Option<&Self>) -> Option<Self> {
         match (one, other) {
@@ -152,6 +185,30 @@ impl PrfOption {
 }
 
 impl PrfItem {
+    /// 内置订阅项：启动阶段不联网，用空模板占位，定时器随后按 60 分钟间隔立即拉取一次
+    pub fn from_builtin_subscription(spec: &BuiltinSubscription) -> Self {
+        Self {
+            uid: Some(spec.uid.into()),
+            itype: Some("remote".into()),
+            name: Some(spec.name.into()),
+            file: Some(format!("{}.yaml", spec.uid).into()),
+            desc: Some(spec.desc.into()),
+            url: Some(spec.url.into()),
+            selected: None,
+            extra: None,
+            updated: Some(0),
+            option: Some(PrfOption {
+                update_interval: Some(60),
+                allow_auto_update: Some(true),
+                with_proxy: Some(true),
+                self_proxy: Some(false),
+                ..PrfOption::default()
+            }),
+            home: None,
+            file_data: Some(tmpl::ITEM_LOCAL.into()),
+        }
+    }
+
     /// From partial item
     /// must contain `itype`
     pub async fn from(item: &Self, file_data: Option<String>) -> Result<Self> {
@@ -259,7 +316,8 @@ impl PrfItem {
         desc: Option<&String>,
         option: Option<&PrfOption>,
     ) -> Result<Self> {
-        let with_proxy = option.is_some_and(|o| o.with_proxy.unwrap_or(false));
+        // 订阅更新默认走系统代理；只有显式设为 false 才关闭
+        let with_proxy = option.and_then(|o| o.with_proxy).unwrap_or(true);
         let self_proxy = option.is_some_and(|o| o.self_proxy.unwrap_or(false));
         let accept_invalid_certs = option.is_some_and(|o| o.danger_accept_invalid_certs.unwrap_or(false));
         let allow_auto_update = Some(allow_auto_update_enabled(option));

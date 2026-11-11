@@ -447,7 +447,8 @@ pub fn run() {
             if !handle::Handle::global().is_exiting() {
                 feat::quit().await;
             }
-            crate::core_ipc::shutdown().await;
+            // 兜底：feat::quit 未走到时也要通知 core「用户退出」并让它留在后台
+            crate::core_ipc::notify_user_exit_and_detach().await;
             logging!(info, Type::System, "Application exited");
         }),
         #[allow(unused_variables)]

@@ -27,6 +27,7 @@ import { useNavigate } from 'react-router'
 import { useAppRefreshers } from '@/providers/app-data-context'
 import { openWebUrl, updateProfile } from '@/services/cmds'
 import { showNotice } from '@/services/notice-service'
+import { maskSubscriptionUrl } from '@/utils/builtin-profiles'
 import parseTraffic from '@/utils/parse-traffic'
 
 import { EnhancedCard } from './enhanced-card'
@@ -36,13 +37,6 @@ const round = keyframes`
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 `
-
-// 辅助函数解析URL和过期时间
-const parseUrl = (url?: string) => {
-  if (!url) return '-'
-  if (url.startsWith('http')) return new URL(url).host
-  return 'local'
-}
 
 const parseExpire = (expire?: number) => {
   if (!expire) return '-'
@@ -124,7 +118,7 @@ const ProfileDetails = ({
                     ml: 0.5,
                     fontWeight: 'medium',
                   }}
-                  title={parseUrl(current.url)}
+                  title={maskSubscriptionUrl(current.url)}
                 >
                   <Typography
                     component="span"
@@ -136,7 +130,7 @@ const ProfileDetails = ({
                       flex: 1,
                     }}
                   >
-                    {parseUrl(current.url)}
+                    {maskSubscriptionUrl(current.url)}
                   </Typography>
                   <LaunchOutlined
                     fontSize="inherit"
@@ -160,9 +154,9 @@ const ProfileDetails = ({
                     ml: 0.5,
                     fontWeight: 'medium',
                   }}
-                  title={parseUrl(current.url)}
+                  title={maskSubscriptionUrl(current.url)}
                 >
-                  {parseUrl(current.url)}
+                  {maskSubscriptionUrl(current.url)}
                 </Typography>
               )}
             </Typography>

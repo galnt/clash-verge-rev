@@ -87,6 +87,7 @@ export const ProxyRender = memo(function ProxyRender(props: RenderProps) {
             sharedSelection.proxy === proxyItem?.name)
         }
         showType={showType}
+        showPulseWaveform
         onClick={() => onChangeProxy(group, proxyItem)}
       />
     ))

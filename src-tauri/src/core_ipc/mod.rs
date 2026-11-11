@@ -61,17 +61,22 @@ struct Shared {
     closed: AtomicBool,
 }
 
-/// 一个 core 子进程 + 一条 IPC 连接。Drop 时关闭连接（core 随即自行退出）。
+/// 一个 core 子进程 + 一条 IPC 连接。
+/// 默认 Drop 会关掉管道并结束子进程；用户退出时置 `detached`，让 core 转入后台常驻。
 pub struct CoreSession {
     shared: Arc<Shared>,
     child: Child,
     reader_task: tokio::task::JoinHandle<()>,
     log_tasks: Vec<tokio::task::JoinHandle<()>>,
+    detached: AtomicBool,
 }
 
 impl CoreSession {
-    /// 建管道 → 启动 core → 等它连上来。
+    /// 清理上一次 GUI 遗留的常驻 core → 建管道 → 启动 core → 等它连上来。
     pub async fn start(core_exe: &Path) -> Result<Self> {
+        // GUI 重启/Clash 重启时，先结束掉留在后台的旧 core，保证全局只有一个实例。
+        cleanup_stale_resident_core().await;
+
         let endpoint = Endpoint::bind()?;
         logging!(
             info,
@@ -83,6 +88,7 @@ impl CoreSession {
 
         let mut child = spawn_core(core_exe, &endpoint.name())?;
         let pid = child.id().unwrap_or_default();
+        write_resident_pid(pid);
         logging!(info, Type::Core, "[CoreIPC] core spawned pid={pid}");
 
         let conn = match tokio::time::timeout(CONNECT_TIMEOUT, endpoint.accept()).await {
@@ -113,6 +119,7 @@ impl CoreSession {
             child,
             reader_task,
             log_tasks,
+            detached: AtomicBool::new(false),
         })
     }
 
@@ -127,6 +134,21 @@ impl CoreSession {
     pub async fn stop_test(&self) -> Result<()> {
         self.call("StopTest", &proto::EmptyReq {}.encode_to_vec()).await?;
         Ok(())
+    }
+
+    /// `UserExit`：GUI 退出前通知 core「用户已退出」，core 收到后不再随父进程/
+    /// IPC 连接断开而自杀，转入后台常驻。旧版 core 没有这个 method，失败也不阻塞退出。
+    pub async fn notify_user_exit(&self) {
+        let outcome = tokio::time::timeout(
+            Duration::from_secs(3),
+            self.call("UserExit", &proto::EmptyReq {}.encode_to_vec()),
+        )
+        .await;
+        match outcome {
+            Ok(Ok(_)) => logging!(info, Type::Core, "[CoreIPC] user exit notified"),
+            Ok(Err(err)) => logging!(warn, Type::Core, "[CoreIPC] user exit notification failed: {err}"),
+            Err(_) => logging!(warn, Type::Core, "[CoreIPC] user exit notification timed out"),
+        }
     }
 
     async fn call(&self, method: &str, payload: &[u8]) -> Result<Vec<u8>> {
@@ -207,16 +229,35 @@ pub fn warm_up() {
     });
 }
 
-/// 退出前释放常驻会话（关闭管道并结束子进程）。
-pub async fn shutdown() {
+/// 退出流程：通知 core「用户退出」，然后只断开 IPC，把 core 留在后台常驻。
+/// feat::quit 与 RunEvent::Exit 都可能调用，第二次会话已被取走，是幂等的。
+pub async fn notify_user_exit_and_detach() {
     let mut slot = shared_slot().lock().await;
-    let session = slot.take();
+    let Some(session) = slot.take() else {
+        return;
+    };
     drop(slot);
 
-    if session.is_some() {
-        logging!(info, Type::Core, "[CoreIPC] resident core stopped");
+    session.notify_user_exit().await;
+    // Drop 时不再 kill 子进程：管道随 GUI 退出而关闭，core 会继续跑后台任务。
+    session.detached.store(true, Ordering::SeqCst);
+    logging!(info, Type::Core, "[CoreIPC] GUI 退出，core 转入后台常驻");
+}
+
+/// Clash 内核重启时调用：结束当前常驻 core，并重新拉起一个。
+pub async fn restart_resident_core() -> Result<Arc<CoreSession>> {
+    {
+        let mut slot = shared_slot().lock().await;
+        // 旧会话 drop 时会 kill 掉自己的子进程。
+        let old = slot.take();
+        drop(old);
     }
-    // session 在此 drop：关闭管道并结束子进程
+
+    let core_exe = resolve_core_exe()?;
+    let session = Arc::new(CoreSession::start(&core_exe).await?);
+    let mut slot = shared_slot().lock().await;
+    *slot = Some(Arc::clone(&session));
+    Ok(session)
 }
 
 impl Drop for CoreSession {
@@ -224,6 +265,10 @@ impl Drop for CoreSession {
         self.reader_task.abort();
         for task in &self.log_tasks {
             task.abort();
+        }
+        if self.detached.load(Ordering::SeqCst) {
+            // 用户已退出：只断开连接，core 保留在后台继续运行。
+            return;
         }
         // 关闭管道后 core 会自己退出；这里再补一刀，避免它成为孤儿进程。
         let _ = self.child.start_kill();
@@ -256,6 +301,99 @@ async fn read_loop(mut reader: PipeReader, shared: Arc<Shared>) {
     logging!(warn, Type::Core, "[CoreIPC] core connection closed");
 }
 
+#[cfg(windows)]
+const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+#[cfg(windows)]
+const CORE_EXE_NAME: &str = "verge-throne-core.exe";
+/// GUI 退出后 core 仍在后台，下次启动靠这个 PID 文件找到并结束旧进程。
+const RESIDENT_PID_FILE: &str = "clash-verge-throne-core.pid";
+
+fn resident_pid_path() -> PathBuf {
+    std::env::temp_dir().join(RESIDENT_PID_FILE)
+}
+
+fn write_resident_pid(pid: u32) {
+    if pid == 0 {
+        return;
+    }
+    if let Err(err) = std::fs::write(resident_pid_path(), pid.to_string()) {
+        logging!(warn, Type::Core, "[CoreIPC] write resident core pid failed: {err}");
+    }
+}
+
+#[cfg(windows)]
+async fn resident_core_alive(pid: u32) -> bool {
+    let filter = format!("PID eq {pid}");
+    match Command::new("tasklist")
+        .args(["/FI", filter.as_str(), "/NH"])
+        .creation_flags(CREATE_NO_WINDOW)
+        .output()
+        .await
+    {
+        Ok(output) => String::from_utf8_lossy(&output.stdout)
+            .to_ascii_lowercase()
+            .contains(CORE_EXE_NAME),
+        Err(err) => {
+            logging!(warn, Type::Core, "[CoreIPC] tasklist failed: {err}");
+            false
+        }
+    }
+}
+
+#[cfg(windows)]
+async fn kill_resident_core(pid: u32) {
+    let pid = pid.to_string();
+    if let Err(err) = Command::new("taskkill")
+        .args(["/PID", pid.as_str(), "/F", "/T"])
+        .creation_flags(CREATE_NO_WINDOW)
+        .output()
+        .await
+    {
+        logging!(warn, Type::Core, "[CoreIPC] taskkill {pid} failed: {err}");
+    }
+}
+
+#[cfg(unix)]
+async fn resident_core_alive(pid: u32) -> bool {
+    let pid = pid.to_string();
+    Command::new("kill")
+        .args(["-0", pid.as_str()])
+        .output()
+        .await
+        .map(|out| out.status.success())
+        .unwrap_or(false)
+}
+
+#[cfg(unix)]
+async fn kill_resident_core(pid: u32) {
+    let pid = pid.to_string();
+    let _ = Command::new("kill").args(["-9", pid.as_str()]).output().await;
+}
+
+/// 结束上一次 GUI 遗留的常驻 core（只针对确实还在跑的同名进程）。
+async fn cleanup_stale_resident_core() {
+    let path = resident_pid_path();
+    let Some(pid) = std::fs::read_to_string(&path)
+        .ok()
+        .and_then(|text| text.trim().parse::<u32>().ok())
+    else {
+        return;
+    };
+    let _ = std::fs::remove_file(&path);
+    if pid == 0 || pid == std::process::id() || !resident_core_alive(pid).await {
+        return;
+    }
+
+    logging!(
+        info,
+        Type::Core,
+        "[CoreIPC] terminating leftover resident core pid={pid}"
+    );
+    kill_resident_core(pid).await;
+    // 给旧进程一点时间退出，避免新 core 与它抢占资源。
+    tokio::time::sleep(Duration::from_millis(200)).await;
+}
+
 fn spawn_core(core_exe: &Path, endpoint: &str) -> Result<Child> {
     let mut command = Command::new(core_exe);
     command
@@ -266,7 +404,6 @@ fn spawn_core(core_exe: &Path, endpoint: &str) -> Result<Child> {
     #[cfg(windows)]
     {
         // 别给 core 弹控制台窗口；tokio 的 Command 自带 creation_flags。
-        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
         command.creation_flags(CREATE_NO_WINDOW);
     }
     command

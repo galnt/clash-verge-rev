@@ -35,6 +35,7 @@ import { BaseDialog } from '@/components/base'
 import { getNextUpdateTime, updateProfile } from '@/services/cmds'
 import { useLoadingCache, useSetLoadingCache } from '@/services/states'
 import type { TranslationKey } from '@/types/generated/i18n-keys'
+import { isBuiltinProfile, maskSubscriptionUrl } from '@/utils/builtin-profiles'
 import { debugLog } from '@/utils/debug'
 import parseTraffic from '@/utils/parse-traffic'
 
@@ -241,7 +242,7 @@ const ProfileItemBase = (props: ProfileItemProps) => {
   const hasHome = !!itemData.home // only subscription url has home page
 
   const { upload = 0, download = 0, total = 0 } = extra ?? {}
-  const from = parseUrl(itemData.url)
+  const from = maskSubscriptionUrl(itemData.url)
   const description = itemData.desc
   const expire = parseExpire(extra?.expire)
   const progress = Math.min(
@@ -351,6 +352,24 @@ const ProfileItemBase = (props: ProfileItemProps) => {
     delete: 'shared.actions.delete',
   } as const
 
+  // 内置订阅不提供删除入口
+  const deletable = !isBuiltinProfile(itemData.uid)
+  const deleteMenuItem: ContextMenuItem = {
+    label: menuLabels.delete,
+    handler: () => {
+      setAnchorEl(null)
+      if (batchMode) {
+        // If in batch mode, just toggle selection instead of showing delete confirmation
+        if (onSelectionChange) {
+          onSelectionChange()
+        }
+      } else {
+        setConfirmOpen(true)
+      }
+    },
+    disabled: false,
+  }
+
   const urlModeMenu: ContextMenuItem[] = [
     ...(hasHome
       ? [
@@ -381,21 +400,7 @@ const ProfileItemBase = (props: ProfileItemProps) => {
       handler: () => onUpdate(2),
       disabled: false,
     },
-    {
-      label: menuLabels.delete,
-      handler: () => {
-        setAnchorEl(null)
-        if (batchMode) {
-          // If in batch mode, just toggle selection instead of showing delete confirmation
-          if (onSelectionChange) {
-            onSelectionChange()
-          }
-        } else {
-          setConfirmOpen(true)
-        }
-      },
-      disabled: false,
-    },
+    ...(deletable ? [deleteMenuItem] : []),
   ]
   const fileModeMenu: ContextMenuItem[] = [
     {
@@ -408,21 +413,7 @@ const ProfileItemBase = (props: ProfileItemProps) => {
       handler: onEditInfo,
       disabled: false,
     },
-    {
-      label: menuLabels.delete,
-      handler: () => {
-        setAnchorEl(null)
-        if (batchMode) {
-          // If in batch mode, just toggle selection instead of showing delete confirmation
-          if (onSelectionChange) {
-            onSelectionChange()
-          }
-        } else {
-          setConfirmOpen(true)
-        }
-      },
-      disabled: false,
-    },
+    ...(deletable ? [deleteMenuItem] : []),
   ]
 
   const boxStyle = {
@@ -479,7 +470,7 @@ const ProfileItemBase = (props: ProfileItemProps) => {
         )}
         <Box sx={{ position: 'relative' }}>
           <Box sx={{ display: 'flex', justifyContent: 'start' }}>
-            {batchMode && (
+            {batchMode && deletable && (
               <IconButton
                 size="small"
                 sx={{ padding: '2px', marginRight: '4px', marginLeft: '-8px' }}
@@ -705,13 +696,6 @@ const ProfileItemBase = (props: ProfileItemProps) => {
 }
 
 export const ProfileItem = memo(ProfileItemBase)
-
-function parseUrl(url?: string) {
-  if (!url) return ''
-  const regex = /https?:\/\/(.+?)\//
-  const result = url.match(regex)
-  return result ? result[1] : 'local file'
-}
 
 function parseExpire(expire?: number) {
   if (!expire) return '-'

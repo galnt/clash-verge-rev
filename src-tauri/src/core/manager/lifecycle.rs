@@ -109,6 +109,15 @@ impl CoreManager {
         let _life = self.lifecycle_lock.lock().await;
         logging!(info, Type::Core, "Restarting core");
         self.stop_core_inner().await?;
+
+        // Clash 重启时检查并重建常驻 throne core：结束旧进程、重新拉起一个。
+        // 后台执行，避免 15s 的连接等待拖住代理内核重启。
+        tokio::spawn(async {
+            if let Err(err) = crate::core_ipc::restart_resident_core().await {
+                logging!(warn, Type::Core, "[CoreIPC] restart resident core failed: {err}");
+            }
+        });
+
         self.start_core_inner().await
     }
 

@@ -156,7 +156,7 @@ const rules: {
   },
   {
     name: 'IN-PORT',
-    example: '7897',
+    example: '7890',
     validator: (value) => portValidator(value),
   },
   {

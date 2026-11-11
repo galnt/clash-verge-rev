@@ -1,4 +1,4 @@
-import { CheckCircleOutlineRounded, SpeedRounded } from '@mui/icons-material'
+import { CheckCircleOutlineRounded } from '@mui/icons-material'
 import {
   alpha,
   Box,
@@ -12,6 +12,7 @@ import {
 } from '@mui/material'
 import { useTranslation } from 'react-i18next'
 
+import NodePulse from '@/assets/image/node-pulse.svg?react'
 import { BaseLoading } from '@/components/base'
 import { useProxyDelayState } from '@/hooks/use-proxy-delay-state'
 import { useProxySpeedState } from '@/hooks/use-proxy-speed-state'
@@ -41,16 +42,18 @@ const SpeedWidget = styled(Widget)(() => ({
   padding: '0 6px',
 }))
 
-const TypeBox = styled('span')(({ theme }) => ({
+// 与分组树右栏卡片的类型标签保持同一套尺寸
+const TypeBox = styled('span')(({ theme: { typography, palette } }) => ({
   display: 'inline-block',
   border: '1px solid #ccc',
-  borderColor: alpha(theme.palette.text.secondary, 0.36),
-  color: alpha(theme.palette.text.secondary, 0.42),
+  borderColor: palette.text.secondary,
+  color: palette.text.secondary,
   borderRadius: 4,
   fontSize: 10,
+  fontFamily: typography.fontFamily,
   marginRight: '4px',
-  padding: '0 2px',
-  lineHeight: 1.25,
+  padding: '0 4px',
+  lineHeight: 1.5,
 }))
 
 export const ProxyItem = (props: Props) => {
@@ -210,7 +213,13 @@ export const ProxyItem = (props: Props) => {
               }}
             >
               {speedValue === -1 ? (
-                <SpeedRounded sx={{ fontSize: 14, display: 'block' }} />
+                // 未测速时和分组树卡片一致，用静态波形代替图标
+                <Box
+                  component="span"
+                  sx={{ display: 'flex', '& svg': { width: 48, height: 20 } }}
+                >
+                  <NodePulse />
+                </Box>
               ) : (
                 speedManager.formatSpeed(speedValue, proxy.name)
               )}

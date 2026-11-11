@@ -34,6 +34,9 @@ pub async fn quit() {
         if cleanup_result { 0 } else { 1 }
     );
 
+    // 退出前通知常驻 core「用户退出」，并让它脱离 GUI 继续在后台运行。
+    crate::core_ipc::notify_user_exit_and_detach().await;
+
     let app_handle = handle::Handle::app_handle();
     app_handle.exit(if cleanup_result { 0 } else { 1 });
 }

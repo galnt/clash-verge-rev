@@ -1,6 +1,6 @@
 use super::{
     PrfOption,
-    prfitem::{PrfItem, PrfSelected},
+    prfitem::{PrfItem, PrfSelected, is_builtin_subscription},
 };
 use crate::{
     core::{handle, tray::Tray},
@@ -315,9 +315,39 @@ impl IProfiles {
         self.save_file().await
     }
 
+    /// 所有远程订阅统一启用「使用系统代理更新」
+    pub async fn enable_system_proxy_update(&mut self) -> Result<()> {
+        // 与 delete_item 一样先 take，避免跨 await 持有 self 的可变借用
+        let Some(mut items) = self.items.take() else {
+            return Ok(());
+        };
+
+        let mut changed = false;
+        for item in items.iter_mut() {
+            if item.itype.as_deref() != Some("remote") {
+                continue;
+            }
+            let option = item.option.get_or_insert_with(PrfOption::default);
+            if option.with_proxy != Some(true) || option.self_proxy != Some(false) {
+                option.with_proxy = Some(true);
+                option.self_proxy = Some(false);
+                changed = true;
+            }
+        }
+        self.items = Some(items);
+
+        if changed {
+            self.save_file().await?;
+        }
+        Ok(())
+    }
+
     /// delete item
     /// if delete the current then return true
     pub async fn delete_item(&mut self, uid: &String) -> Result<bool> {
+        if is_builtin_subscription(uid.as_str()) {
+            bail!("built-in subscription cannot be deleted");
+        }
         let current = self.current.as_ref().unwrap_or(uid);
         let current = current.clone();
         let delete_uids = {
@@ -585,6 +615,16 @@ pub async fn profiles_patch_item_safe(index: &String, item: &PrfItem) -> Result<
         .await
         .with_data_modify(|mut profiles| async move {
             profiles.patch_item(index, item).await?;
+            Ok((profiles, ()))
+        })
+        .await
+}
+
+pub async fn profiles_enable_system_proxy_update_safe() -> Result<()> {
+    Config::profiles()
+        .await
+        .with_data_modify(|mut profiles| async move {
+            profiles.enable_system_proxy_update().await?;
             Ok((profiles, ()))
         })
         .await

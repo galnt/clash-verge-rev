@@ -153,6 +153,7 @@ const GroupDot = ({
   nodeWidth,
   now,
   onClick,
+  onToggle,
 }: {
   node: LayoutNode
   isRoot?: boolean
@@ -162,6 +163,8 @@ const GroupDot = ({
   /** 运行时该组当前生效的节点，和代理页组标签的 group.now 一致 */
   now?: string
   onClick: (node: LayoutNode) => void
+  /** 点击角标展开/收起该组：只影响左栏，不改变右栏 */
+  onToggle?: (node: LayoutNode) => void
 }) => {
   const theme = useTheme()
   const { t } = useTranslation()
@@ -213,13 +216,30 @@ const GroupDot = ({
         {!isRoot && (
           <Box
             component="span"
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={
+              onToggle && node.childGroupCount > 0
+                ? (event) => {
+                    // 只切换左栏展开层级，不触发节点的选中/右栏切换
+                    event.stopPropagation()
+                    onToggle(node)
+                  }
+                : undefined
+            }
             sx={{
               position: 'absolute',
-              top: 3,
-              right: 6,
+              top: 2,
+              right: 4,
+              px: '3px',
+              borderRadius: '3px',
               fontSize: 9,
-              lineHeight: 1,
-              opacity: 0.85,
+              lineHeight: 1.4,
+              opacity: node.childGroupCount > 0 ? 0.9 : 0.4,
+              cursor: node.childGroupCount > 0 ? 'pointer' : 'default',
+              '&:hover':
+                node.childGroupCount > 0
+                  ? { backgroundColor: alpha(color, 0.2) }
+                  : undefined,
             }}
           >
             {node.expanded ? '▼' : '▶'}
@@ -346,6 +366,11 @@ export const ProxyGroupTree = () => {
 
   const [source, setSource] = useState<SourceKind>('profile')
   const [pathKeys, setPathKeys] = useState<string[]>(() => [])
+  // 右栏固定展示的组：点击左栏组时只改这里，左栏的层级与展开状态不动
+  const [focusGroup, setFocusGroup] = useState<{
+    name: string
+    pathNames: string[]
+  } | null>(null)
   const [showCheck, setShowCheck] = useState(false)
   const [transform, setTransform] = useState<Transform>(DEFAULT_TRANSFORM)
   const [dragging, setDragging] = useState(false)
@@ -374,7 +399,6 @@ export const ProxyGroupTree = () => {
     ty: number
     moved: boolean
   } | null>(null)
-  const userInteractedRef = useRef(false)
 
   useQuery({
     queryKey: ['getProxies'],
@@ -523,45 +547,6 @@ export const ProxyGroupTree = () => {
     return { keys, names, proxy: '' }
   }, [rootName, runtimeGroups, isGroup])
 
-  // 从根组的子组开始找目标组的树路径（根节点自身不需要展开）
-  const pathToGroup = useCallback(
-    (target: string): string[] => {
-      if (!target || target === rootName) return []
-      const queue: { name: string; keys: string[] }[] = membersOf(rootName)
-        .filter((name) => name !== rootName && isGroup(name))
-        .map((name) => {
-          const key = topPath(name)
-          return { name, keys: [key] }
-        })
-      const visited = new Set<string>([rootName])
-
-      while (queue.length) {
-        const item = queue.shift()
-        if (!item) break
-        if (item.name === target) return item.keys
-        if (visited.has(item.name)) continue
-        visited.add(item.name)
-        const parentKey = item.keys[item.keys.length - 1]
-        for (const child of membersOf(item.name)) {
-          if (!isGroup(child) || child === rootName) continue
-          queue.push({
-            name: child,
-            keys: [...item.keys, `${parentKey}/${encodeURIComponent(child)}`],
-          })
-        }
-      }
-
-      return []
-    },
-    [rootName, isGroup, membersOf],
-  )
-
-  const sharedPath = useMemo(() => {
-    if (!sharedSelection.group) return null
-    const path = pathToGroup(sharedSelection.group)
-    return path.length ? path : null
-  }, [sharedSelection.group, pathToGroup])
-
   const defaultPathKeys = useMemo(() => {
     if (activeChain.keys.length) return activeChain.keys
     const firstChild = membersOf(rootName).find(
@@ -570,8 +555,16 @@ export const ProxyGroupTree = () => {
     return firstChild ? [topPath(firstChild)] : []
   }, [activeChain.keys, rootName, membersOf, isGroup])
 
-  const effectivePathKeys =
-    sharedPath ?? (userInteractedRef.current ? pathKeys : defaultPathKeys)
+  // 左栏的展开层级只由本地状态决定（首次按当前生效链展开一次），
+  // 之后点击组只切换右栏内容，不再因为选择变化而重排左侧。
+  const pathKeysInitializedRef = useRef(false)
+  if (!pathKeysInitializedRef.current && defaultPathKeys.length) {
+    // 树数据是异步来的：首次拿到生效链时同步展开，之后不再跟随选择变化
+    pathKeysInitializedRef.current = true
+    setPathKeys(defaultPathKeys)
+  }
+
+  const effectivePathKeys = pathKeys
   const activeKeys = useMemo(
     () => new Set(activeChain.keys),
     [activeChain.keys],
@@ -666,6 +659,7 @@ export const ProxyGroupTree = () => {
         membersOf,
         isGroup,
         groupTypeOf,
+        focus: focusGroup ?? undefined,
       }),
     [
       tree,
@@ -677,6 +671,7 @@ export const ProxyGroupTree = () => {
       membersOf,
       isGroup,
       groupTypeOf,
+      focusGroup,
     ],
   )
 
@@ -962,24 +957,45 @@ export const ProxyGroupTree = () => {
     }
   }
 
+  // 点击左栏的组：只把右栏切到该组，左栏的层级与展开状态保持不变
   const onNodeClick = (node: LayoutNode) => {
     if (node.key === 'root') {
-      userInteractedRef.current = false
+      pathKeysInitializedRef.current = true
+      setFocusGroup(null)
       setPathKeys([])
       publishProxySelection(setSharedSelection, '', '', 'tree')
       return
     }
 
-    // 点击左侧的组 = 让父组选中它，同时沿链展开
+    setFocusGroup({
+      name: node.name,
+      pathNames: node.pathKeys
+        .map((key) => layout.nodeByKey.get(key)?.name ?? '')
+        .filter(Boolean),
+    })
+    // 同时把父组的 now 写回该组，树内高亮与首页保持一致
     selectChain(node.parentChain, node.parentName, node.name, {
       group: node.name,
       proxy: '',
     })
   }
 
+  // 只改左栏展开层级：展开某个组，或收起它之后的所有层级
+  const onToggleExpand = (node: LayoutNode) => {
+    pathKeysInitializedRef.current = true
+    setPathKeys((prev) => {
+      if (!node.expanded) return node.pathKeys
+      const index = prev.indexOf(node.key)
+      return index < 0 ? prev : prev.slice(0, index)
+    })
+    // 右栏回到「跟随最后展开的组」
+    setFocusGroup(null)
+  }
+
   const onChangeSource = (next: SourceKind) => {
     setSource(next)
-    userInteractedRef.current = false
+    pathKeysInitializedRef.current = true
+    setFocusGroup(null)
     setPathKeys([])
     setTransform(DEFAULT_TRANSFORM)
   }
@@ -1135,7 +1151,8 @@ export const ProxyGroupTree = () => {
             size="small"
             variant="outlined"
             onClick={() => {
-              userInteractedRef.current = true
+              pathKeysInitializedRef.current = true
+              setFocusGroup(null)
               setPathKeys([])
               publishProxySelection(setSharedSelection, '', '', 'tree')
             }}
@@ -1283,6 +1300,7 @@ export const ProxyGroupTree = () => {
                   nodeWidth={nodeW}
                   now={nowOf(rootName)}
                   onClick={onNodeClick}
+                  onToggle={onToggleExpand}
                 />
                 {/* 左栏只画组：叶子节点统一在右栏展示，不再多铺一层 */}
                 {layout.nodes.map((node) => (
@@ -1297,6 +1315,7 @@ export const ProxyGroupTree = () => {
                     nodeWidth={nodeW}
                     now={nowOf(node.name)}
                     onClick={onNodeClick}
+                    onToggle={onToggleExpand}
                   />
                 ))}
 

@@ -6,6 +6,7 @@ import { useAppRefreshers, useProxiesData } from '@/providers/app-data-context'
 import delayManager from '@/services/delay'
 import { debugLog } from '@/utils/debug'
 
+import { CELL_GAP, NODE_W_MIN } from './proxy-group-tree-layout'
 import { filterSort } from './use-filter-sort'
 import {
   DEFAULT_STATE,
@@ -77,16 +78,22 @@ type GroupCache = {
   items: IRenderItem[]
 }
 
-// 优化列布局计算
-const calculateColumns = (width: number, configCol: number): number => {
-  if (configCol > 0 && configCol < 6) return configCol
+/** 与分组树右栏同一套列宽规则时的最大列数 */
+const MAX_LAYOUT_COLUMNS = 6
 
-  if (width > 1920) return 5
-  if (width > 1450) return 4
-  if (width > 1024) return 3
-  if (width > 900) return 2
-  if (width >= 600) return 2
-  return 1
+/**
+ * 列数与卡片宽度跟分组树右栏保持一致：
+ * 用「最小卡片宽度 + 单元格间距」铺满整栏（同 fitColumns），上限取设置里的列数。
+ * 这样同一窗口宽度下，代理组页面的卡片和分组树卡片一样宽，一行放下的数量也一致。
+ */
+const calculateColumns = (width: number, configCol: number): number => {
+  const avail = Math.max(width - 24, NODE_W_MIN)
+  const fit = Math.floor((avail + CELL_GAP) / (NODE_W_MIN + CELL_GAP))
+  const configured =
+    configCol >= 1 && configCol <= MAX_LAYOUT_COLUMNS
+      ? configCol
+      : MAX_LAYOUT_COLUMNS
+  return Math.max(1, Math.min(configured, fit))
 }
 
 // 优化分组逻辑
@@ -120,7 +127,8 @@ export const useRenderList = (
 
   // 计算列数
   const col = useMemo(
-    () => calculateColumns(width, verge?.proxy_layout_column || 6),
+    () =>
+      calculateColumns(width, verge?.proxy_layout_column || MAX_LAYOUT_COLUMNS),
     [width, verge?.proxy_layout_column],
   )
 
@@ -184,6 +192,12 @@ export const useRenderList = (
   // 处理渲染列表
   const renderList: IRenderItem[] = useMemo(() => {
     if (!proxiesData) return []
+
+    // 与分组树同一份数据源：records 合并了 provider 节点信息（provider/UDP/XUDP/TFO/MPTCP/SMUX 等），
+    // 组里的 all 可能只有内核基础字段，直接用会让卡片少显示一堆标签
+    const records: Record<string, IProxyItem> = proxiesData.records ?? {}
+    const withRecord = (proxy: IProxyItem): IProxyItem =>
+      records[proxy?.name] ?? proxy
 
     // 链式代理模式下，显示代理组和其节点
     if (isChainMode && runtimeConfig && mode === 'rule') {
@@ -425,7 +439,7 @@ export const useRenderList = (
             matchWholeWord: headState.filterMatchWholeWord,
             useRegularExpression: headState.filterUseRegularExpression,
           },
-        )
+        ).map(withRecord)
 
         // 全局模式下，添加组头
         if (!useRule) {

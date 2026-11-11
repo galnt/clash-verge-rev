@@ -25,6 +25,8 @@ export interface LayoutNode {
   groupType: string
   memberCount: number
   proxyCount: number
+  /** 直属子组数量：为 0 时左栏不再有可展开的下一层 */
+  childGroupCount: number
   /** group = 代理组，proxy = 原组关系里的实体节点 */
   kind: 'group' | 'proxy'
   /** 直接包含它的组名 */
@@ -86,6 +88,8 @@ interface BuildParams {
   membersOf: (name: string) => string[]
   isGroup: (name: string) => boolean
   groupTypeOf: (name: string) => string
+  /** 右栏固定展示的组（点击左栏组时只切右栏，不改变左栏展开层级） */
+  focus?: { name: string; pathNames: string[] }
 }
 
 /**
@@ -115,6 +119,7 @@ export function buildTreeLayout({
   membersOf,
   isGroup,
   groupTypeOf,
+  focus,
 }: BuildParams): TreeLayout {
   const centerX = Math.max(width, 320) / 2
   const pathSet = new Set(pathKeys)
@@ -132,6 +137,7 @@ export function buildTreeLayout({
     groupType: 'MATCH',
     memberCount: childGroups.length,
     proxyCount: 0,
+    childGroupCount: childGroups.length,
     kind: 'group',
     parentName: rootName,
     parentChain: [rootName],
@@ -186,6 +192,9 @@ export function buildTreeLayout({
         memberCount: members.length,
         proxyCount: members.filter(
           (name) => !isGroup(name) && !POLICY_NAMES.has(name),
+        ).length,
+        childGroupCount: members.filter(
+          (name) => name !== item.name && isGroup(name),
         ).length,
         kind: item.kind,
         parentName: item.parentName,
@@ -266,9 +275,21 @@ export function buildTreeLayout({
 
   const sections: ProxySection[] = []
   const lastKey = pathKeys[pathKeys.length - 1]
-  const lastNode = lastKey ? nodeByKey.get(lastKey) : undefined
+  const layoutFocus = lastKey ? nodeByKey.get(lastKey) : undefined
+  // 右栏展示的组：默认跟随左栏最后展开的组；传了 focus 则以它为准，
+  // 这样点击左侧组只会切换右栏内容，左栏的层级与展开状态完全不动。
+  const focusNode = focus
+    ? {
+        key:
+          layoutFocus?.name === focus.name
+            ? layoutFocus.key
+            : `g/${encodeURIComponent(focus.name)}`,
+        name: focus.name,
+        pathKeys: layoutFocus?.name === focus.name ? layoutFocus.pathKeys : [],
+      }
+    : layoutFocus
 
-  if (lastNode) {
+  if (focusNode) {
     const sectionByKey = new Map<string, ProxySection>()
     const getSection = (key: string, name: string) => {
       let section = sectionByKey.get(key)
@@ -288,6 +309,9 @@ export function buildTreeLayout({
 
     // sectionKey 对应的组名链（根 → section 所在层）
     const pathNamesOf = (key: string): string[] => {
+      if (focus && key === focusNode.key) {
+        return [root.name, ...focus.pathNames]
+      }
       const node = nodeByKey.get(key)
       if (!node) return [root.name]
       const names = node.pathKeys
@@ -326,22 +350,22 @@ export function buildTreeLayout({
       }
     }
 
-    for (const child of membersOf(lastNode.name)) {
+    for (const child of membersOf(focusNode.name)) {
       if (isGroup(child)) {
-        const childKey = childPath(lastNode.key, child)
-        const sectionKey = nodeByKey.has(childKey) ? childKey : lastNode.key
+        const childKey = childPath(focusNode.key, child)
+        const sectionKey = nodeByKey.has(childKey) ? childKey : focusNode.key
         collect(
           child,
           sectionKey,
           nodeByKey.get(sectionKey)?.name ?? child,
-          new Set([lastNode.name, child]),
+          new Set([focusNode.name, child]),
           [],
         )
       } else if (!POLICY_NAMES.has(child)) {
-        const section = getSection(lastNode.key, lastNode.name)
+        const section = getSection(focusNode.key, focusNode.name)
         section.proxies.push(child)
-        section.owners[child] ??= lastNode.name
-        section.ownerPaths[child] ??= pathNamesOf(lastNode.key)
+        section.owners[child] ??= focusNode.name
+        section.ownerPaths[child] ??= pathNamesOf(focusNode.key)
       }
     }
   }

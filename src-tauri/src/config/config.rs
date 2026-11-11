@@ -1,6 +1,9 @@
 use super::{IClashTemp, IProfiles, IVerge};
 use crate::{
-    config::{PrfItem, profiles_append_item_safe, runtime::IRuntime},
+    config::{
+        BUILTIN_SUBSCRIPTIONS, PrfItem, profiles_append_item_safe, profiles_enable_system_proxy_update_safe,
+        runtime::IRuntime,
+    },
     constants::{files, timing},
     core::{
         CoreManager,
@@ -110,7 +113,7 @@ impl Config {
         Ok(())
     }
 
-    // Ensure "Merge" and "Script" profile items exist, adding them if missing.
+    // Ensure "Merge"/"Script" and the built-in subscriptions exist, adding them if missing.
     async fn ensure_default_profile_items() -> Result<()> {
         let profiles = Self::profiles().await;
         if profiles.latest_arc().get_item("Merge").is_err() {
@@ -121,6 +124,15 @@ impl Config {
             let script_item = &mut PrfItem::from_script(Some("Script".into()))?;
             profiles_append_item_safe(script_item).await?;
         }
+        // 内置订阅被删掉（或旧版本没有）时，下次启动自动补回
+        for spec in BUILTIN_SUBSCRIPTIONS {
+            if profiles.latest_arc().get_item(spec.uid).is_err() {
+                let builtin = &mut PrfItem::from_builtin_subscription(spec);
+                profiles_append_item_safe(builtin).await?;
+            }
+        }
+        // 所有订阅（含旧版本已存在的）统一启用「使用系统代理更新」
+        profiles_enable_system_proxy_update_safe().await?;
         Ok(())
     }
 

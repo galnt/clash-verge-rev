@@ -8,7 +8,7 @@ pub mod network {
         pub const DEFAULT_REDIR: u16 = 7895;
         #[cfg(target_os = "linux")]
         pub const DEFAULT_TPROXY: u16 = 7896;
-        pub const DEFAULT_MIXED: u16 = 7897;
+        pub const DEFAULT_MIXED: u16 = 7890;
         pub const DEFAULT_SOCKS: u16 = 7898;
         pub const DEFAULT_HTTP: u16 = 7899;
 

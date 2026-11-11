@@ -71,6 +71,7 @@ import {
   useSetLoadingCache,
   useThemeMode,
 } from '@/services/states'
+import { isBuiltinProfile } from '@/utils/builtin-profiles'
 import { debugLog } from '@/utils/debug'
 
 // 与 src-tauri/src/main.rs 的 worker_limit 上限(8)保持一致，避免前后端更新风暴不对齐
@@ -270,6 +271,12 @@ const ProfilePage = () => {
 
     return items.filter((i) => i && type1.includes(i.type!))
   }, [profiles])
+
+  // 内置订阅不可删除：批量选择/全选/计数都以可删除项为基准
+  const deletableProfileItems = useMemo(
+    () => profileItems.filter((item) => !isBuiltinProfile(item.uid)),
+    [profileItems],
+  )
 
   const currentActivatings = () => {
     return [...new Set([profiles.current ?? ''])].filter(Boolean)
@@ -548,6 +555,7 @@ const ProfilePage = () => {
   })
 
   const onDelete = useLockFn(async (uid: string) => {
+    if (isBuiltinProfile(uid)) return
     const current = profiles.current === uid
     try {
       setActivatings([...(current ? currentActivatings() : []), uid])
@@ -692,6 +700,7 @@ const ProfilePage = () => {
   }
 
   const toggleProfileSelection = (uid: string) => {
+    if (isBuiltinProfile(uid)) return
     setSelectedProfiles((prev) => {
       const newSet = new Set(prev)
       if (newSet.has(uid)) {
@@ -704,7 +713,7 @@ const ProfilePage = () => {
   }
 
   const selectAllProfiles = () => {
-    setSelectedProfiles(new Set(profileItems.map((item) => item.uid)))
+    setSelectedProfiles(new Set(deletableProfileItems.map((item) => item.uid)))
   }
 
   const clearAllSelections = () => {
@@ -713,14 +722,15 @@ const ProfilePage = () => {
 
   const isAllSelected = () => {
     return (
-      profileItems.length > 0 && profileItems.length === selectedProfiles.size
+      deletableProfileItems.length > 0 &&
+      deletableProfileItems.length === selectedProfiles.size
     )
   }
 
   const getSelectionState = () => {
     if (selectedProfiles.size === 0) {
       return 'none' // 无选择
-    } else if (selectedProfiles.size === profileItems.length) {
+    } else if (selectedProfiles.size === deletableProfileItems.length) {
       return 'all' // 全选
     } else {
       return 'partial' // 部分选择
@@ -728,19 +738,20 @@ const ProfilePage = () => {
   }
 
   const deleteSelectedProfiles = useLockFn(async () => {
-    if (selectedProfiles.size === 0) return
+    const uids = [...selectedProfiles].filter((uid) => !isBuiltinProfile(uid))
+    if (uids.length === 0) return
 
     try {
       // Get all currently activating profiles
       const currentActivating =
-        profiles.current && selectedProfiles.has(profiles.current)
+        profiles.current && uids.includes(profiles.current)
           ? [profiles.current]
           : []
 
       setActivatings((prev) => [...new Set([...prev, ...currentActivating])])
 
       // Delete all selected profiles
-      for (const uid of selectedProfiles) {
+      for (const uid of uids) {
         await deleteProfile(uid)
       }
 
@@ -1047,7 +1058,6 @@ const ProfilePage = () => {
                 <ProfileMore
                   id="Script"
                   logInfo={chainLogs['Script']}
-                  disabled
                   onSave={async (prev, curr) => {
                     if (prev !== curr) {
                       await onEnhance(false)
