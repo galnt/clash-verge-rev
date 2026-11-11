@@ -245,22 +245,17 @@ export function buildTreeLayout({
     const expanded = nextKey ? nodeByKey.get(nextKey) : undefined
     if (!expanded) break
 
-    // 展开组时，把「原组关系」里的子组和直属实体节点一起铺在这一层
+    // 展开组时只铺子组：直属的叶子节点不再放到左栏，统一在右栏展示
     const parentChain = [rootName, ...namesOfKeys(expanded.pathKeys)]
     pending = membersOf(expanded.name)
-      .filter((name) => !POLICY_NAMES.has(name))
+      .filter((name) => !POLICY_NAMES.has(name) && isGroup(name))
       .map((name) => {
-        const childIsGroup = isGroup(name)
-        const key = childIsGroup
-          ? childPath(expanded.key, name)
-          : `${expanded.key}/p/${encodeURIComponent(name)}`
+        const key = childPath(expanded.key, name)
         return {
           name,
           key,
-          pathKeys: childIsGroup
-            ? [...expanded.pathKeys, key]
-            : expanded.pathKeys,
-          kind: childIsGroup ? ('group' as const) : ('proxy' as const),
+          pathKeys: [...expanded.pathKeys, key],
+          kind: 'group' as const,
           parentName: expanded.name,
           parentChain,
         }

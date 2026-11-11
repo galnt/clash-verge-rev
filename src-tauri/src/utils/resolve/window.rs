@@ -89,6 +89,14 @@ pub async fn build_new_window() -> Result<WebviewWindow, String> {
         logging_error!(Type::Window, window.set_focus());
     });
 
+    // 调试用：设置 CLASH_VERGE_WEBVIEW_DEBUG_PORT=<端口> 时开放 WebView2 远程调试端口，
+    // 便于用 CDP 抓堆快照/DOM 统计定位内存或 CPU 问题；正常使用不设置该变量。
+    if let Ok(port) = std::env::var("CLASH_VERGE_WEBVIEW_DEBUG_PORT") {
+        if !port.is_empty() && port.chars().all(|c| c.is_ascii_digit()) {
+            builder = builder.additional_browser_args(&format!("--remote-debugging-port={port}"));
+        }
+    }
+
     if let Some(theme) = resolved_theme {
         builder = builder.theme(Some(theme));
     }

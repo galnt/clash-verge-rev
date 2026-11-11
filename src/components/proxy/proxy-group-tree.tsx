@@ -977,13 +977,6 @@ export const ProxyGroupTree = () => {
     })
   }
 
-  const onProxyNodeClick = (node: LayoutNode) => {
-    selectChain(node.parentChain, node.parentName, node.name, {
-      group: node.parentName,
-      proxy: node.name,
-    })
-  }
-
   const onChangeSource = (next: SourceKind) => {
     setSource(next)
     userInteractedRef.current = false
@@ -1291,56 +1284,21 @@ export const ProxyGroupTree = () => {
                   now={nowOf(rootName)}
                   onClick={onNodeClick}
                 />
-                {layout.nodes.map((node) =>
-                  node.kind === 'proxy' ? (
-                    <Box
-                      key={node.key}
-                      onPointerDown={(event) => event.stopPropagation()}
-                      sx={{
-                        position: 'absolute',
-                        left: node.x,
-                        top: node.y,
-                        transform: 'translate(-50%, -50%)',
-                        zIndex: 2,
-                        width: nodeW,
-                        borderRadius: 1.5,
-                        outline:
-                          activeChain.proxy === node.name ||
-                          runtimeGroups.get(node.parentName)?.now === node.name
-                            ? `2px dashed ${theme.palette.success.main}`
-                            : 'none',
-                        outlineOffset: 3,
-                      }}
-                    >
-                      {/* 与右栏分组卡片同一套节点样式：类型 / XUDP / 延时 / 速度 */}
-                      <ProxyItemMini
-                        group={proxyGroupOf(node.parentName)}
-                        proxy={proxyItemOf(node.name)}
-                        accentColor={resolveProxyColor(theme, node.name)}
-                        showPulseWaveform
-                        selected={
-                          selection?.kind === 'proxy' &&
-                          selection.name === node.name &&
-                          selection.key === node.parentName
-                        }
-                        onClick={() => onProxyNodeClick(node)}
-                      />
-                    </Box>
-                  ) : (
-                    <GroupDot
-                      key={node.key}
-                      node={node}
-                      selected={
-                        selection?.kind === 'group' &&
-                        selection.name === node.name
-                      }
-                      active={activeKeys.has(node.key)}
-                      nodeWidth={nodeW}
-                      now={nowOf(node.name)}
-                      onClick={onNodeClick}
-                    />
-                  ),
-                )}
+                {/* 左栏只画组：叶子节点统一在右栏展示，不再多铺一层 */}
+                {layout.nodes.map((node) => (
+                  <GroupDot
+                    key={node.key}
+                    node={node}
+                    selected={
+                      selection?.kind === 'group' &&
+                      selection.name === node.name
+                    }
+                    active={activeKeys.has(node.key)}
+                    nodeWidth={nodeW}
+                    now={nowOf(node.name)}
+                    onClick={onNodeClick}
+                  />
+                ))}
 
                 {/* 连线画在节点之上：组关系与选中链都清晰可见 */}
                 <svg
