@@ -16,7 +16,6 @@ const tunConfig = {
     "clash-speedtest.exe" // 替换为你实际的测速程序文件名
   ]
 };
-
 // Define main function (script entry)
 function main(params, profileName) {
   try {
@@ -51,31 +50,40 @@ function main(params, profileName) {
 
     const newProxies = []
     const fNames = []
-    
-    // cf根
-    let cfnodes = params["proxies"].filter(e => e.name.includes("ECH")).map((e) => e.name)
-    let cfnodesn = "🌱CF-根节点, Inc. 域名 " + cfnodes.length + " 节点"
-    if (cfnodes.length > 0) {
 
-      const proxiesList = [
-        cfnodesn, // 手动添加的第一个节点
-        ...params["proxies"].map((e) => e.name)
-      ];
+    newProxies.push({
+      name: '🔀全部节点 ' + params["proxies"].length + ' 节点',
+      type: "fallback",
+      url: "https://www.apple.com/library/test/success.html",
+      interval: 1800,
+      lazy: true,
+      strategy: "consistent-hashing",
+      // tolerance: 1580,
+      proxies: params["proxies"].map((e) => e.name)
+    });
 
+    // 处理添加的CF节点
+    let cfproxy = params["proxies"].filter(e => e.name.includes("[🌱cloudflare]")).map((e) => e.name)
+    let cfproxyn = "🌱CF-Cloudflare, Inc. 域名 " + cfproxy.length + " 节点"
+    if (cfproxy.length > 0) {
       newProxies.push({
-        name: '🔀全部节点 ' + params["proxies"].length + ' 节点',
-        type: "fallback",
+        name: cfproxyn,
+        type: "url-test",
         url: "https://www.apple.com/library/test/success.html",
         interval: 1800,
         lazy: true,
         strategy: "consistent-hashing",
         // tolerance: 1580,
-        proxies: proxiesList
+        proxies: cfproxy
       });
+    }
 
+    // cf根
+    let cfnodes = params["proxies"].filter(e => e.name.includes(".0.0")).map((e) => e.name)
+    let cfnodesn = "🌱CF-根节点, Inc. 域名 " + cfnodes.length + " 节点"
+    if (cfnodes.length > 0) {
       newProxies.push({
         name: cfnodesn,
-        // type: "load-balance",
         type: "url-test",
         url: "https://www.apple.com/library/test/success.html",
         interval: 1800,
@@ -83,17 +91,6 @@ function main(params, profileName) {
         strategy: "consistent-hashing",
         // tolerance: 1580,
         proxies: cfnodes
-      });
-    } else {
-      newProxies.push({
-        name: '🔀全部节点 ' + params["proxies"].length + ' 节点',
-        type: "fallback",
-        url: "https://www.apple.com/library/test/success.html",
-        interval: 1800,
-        lazy: true,
-        strategy: "consistent-hashing",
-        // tolerance: 1580,
-        proxies: params["proxies"].map((e) => e.name)
       });
     }
     
@@ -166,7 +163,7 @@ function main(params, profileName) {
     var nIndex = 0;  // 控制全部节点的排序
 
     // 处理fNames和newProxies
-    console.log("nameMap1", nameMap1)
+    // console.log("nameMap1", nameMap1)
     Array.from(nameMap1.entries())
         .sort((a, b) => b[1].proxies.length - a[1].proxies.length)
         .map(([key, proxy]) => (fNames.push(key),newProxies.push(proxy)));
@@ -175,7 +172,7 @@ function main(params, profileName) {
         .map(([key, proxy]) => (fNames.push(key),newProxies.push(proxy)));
     
     // 国家分组处理完成
-    console.log("国家分组处理完成");
+    // console.log("国家分组处理完成");
 
     // params["proxy-groups"].push(...newProxies);
     params["proxy-groups"] = newProxies;
@@ -194,11 +191,16 @@ function main(params, profileName) {
     // 如果分组过少,则把所有的组都设定为手动选择
     var n = '🔀全部节点 ' + params["proxies"].length + ' 节点';
 
+    // let cfnodesn = "🌱CF-根节点, Inc. 域名 " + cfnodes.length + " 节点"
+    // if (cfnodes.length > 0) {
     fNames.splice(nIndex, 0, n);
     if (cfnodes.length > 0) {
       fNames.splice(nIndex+1, 0, cfnodesn);
     }
-
+    if (cfproxy.length > 0) {
+      fNames.splice(nIndex+1, 0, cfproxyn);
+    }
+    
     // fNames.push('[🌱cloudflare]cf-worker211');
     // fNames.push('[🌱cloudflare]cf-pagy83');
 
@@ -212,53 +214,29 @@ function main(params, profileName) {
 
     // 全部节点的值 load-balance
     if (params["proxy-groups"][1].proxies.length < 10) {
-      // params["proxy-groups"][1].type = "load-balance";
       params["proxy-groups"][1].type = "url-test";
     }
-
+    
     // 配置rule的规则  
     const rules = [
-      "DOMAIN-SUFFIX,github.com," + groupName,
-      "DOMAIN-SUFFIX,googleapis.cn," + groupName,
-      "DOMAIN-SUFFIX,gstatic.com," + groupName,
-      "DOMAIN-SUFFIX,xn--ngstr-lra8j.com," + groupName,
-      "DOMAIN-SUFFIX,github.io," + groupName,
-      "DOMAIN,v2rayse.com," + groupName,
+      // 1. 局域网与本地回环直接连接
+      "GEOIP,LAN,DIRECT",
+      "RULE-SET,lancidr,DIRECT",
+      "RULE-SET,private,DIRECT",
+
+      // 2. 广告拦截（直接拒绝，避免浪费流量或弹窗）
+      "RULE-SET,reject,REJECT",
+
+      // 3. 中国大陆 IP 与常见直连规则（绕过大陆）
+      "GEOIP,CN,DIRECT",
+      "RULE-SET,cncidr,DIRECT",
+      "RULE-SET,applications,DIRECT",
+
+      // 4. 自定义必须直连的网站或本地管理面板
       "DOMAIN,clash.razord.top,DIRECT",
       "DOMAIN,yacd.haishan.me,DIRECT",
-      
-      "DOMAIN-SUFFIX,microsoft.com,DIRECT",
-      "DOMAIN-SUFFIX,live.com,DIRECT",
-      "DOMAIN-SUFFIX,microsoftonline.com,DIRECT",
-      "DOMAIN-SUFFIX,akamaized.net,DIRECT",
-      "DOMAIN-SUFFIX,office.net,DIRECT",
-      "DOMAIN-SUFFIX,azureedge.net,DIRECT",
-      "DOMAIN-SUFFIX,windows.net,DIRECT",
-      "DOMAIN-SUFFIX,azure.com,DIRECT",
-      "DOMAIN-SUFFIX,bing.net,DIRECT",
-      "DOMAIN-SUFFIX,bing.com,DIRECT",
 
-      // "GEOSITE,microsoft,DIRECT",
-      // "DOMAIN-KEYWORD,microsoft.com," + groupName,
-      "DOMAIN-KEYWORD,ytimg.com," + groupName,
-      "DOMAIN-KEYWORD,googleapis.com," + groupName,
-
-      "RULE-SET,google," + groupName + ",no-resolve",
-      "RULE-SET,proxy," + groupName + ",no-resolve",
-      "RULE-SET,gfw," + groupName + ",no-resolve",
-      "RULE-SET,tld-not-cn," + groupName + ",no-resolve",
-
-      "RULE-SET,applications,DIRECT",
-      "RULE-SET,private,DIRECT",
-      "RULE-SET,reject,REJECT",
-      "RULE-SET,icloud,DIRECT",
-      "RULE-SET,apple,DIRECT",
-      "RULE-SET,direct,DIRECT",
-      "RULE-SET,lancidr,DIRECT",
-      "RULE-SET,cncidr,DIRECT",
-      // 其他规则
-      // "GEOIP,LAN,DIRECT",
-      // "GEOIP,CN,DIRECT",
+      // 5. 剩余所有未命中的流量，全部走代理策略组
       "MATCH," + groupName
     ];
     
